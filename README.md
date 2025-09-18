@@ -9,6 +9,8 @@ As of September 2025, **Claude Code reigns supreme** as the most advanced AI cod
 
 > *As someone who has always loved and contributed to the open-source community, I believe in freedom of choice when it comes to AI models. This project embodies that philosophy - giving you the power to run whatever model you want, wherever you want, at the price point that works for you.*
 
+**🆓 Ultimate Flexibility**: Want even more control? You can host models yourself locally or use your favorite LLM provider through ClaudeCodeProxy. **No subscriptions required** - pay only for what you use, when you use it. Whether it's your own self-hosted model, a different cloud provider, or any API-compatible service, ClaudeCodeProxy can bridge it to Claude Code's interface.
+
 ---
 
 ## Supported Providers & Cost Comparison
