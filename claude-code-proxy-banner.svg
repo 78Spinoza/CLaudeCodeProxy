@@ -1,0 +1,317 @@
+<svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E07A5F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D67B5F;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer background -->
+  <rect width="900" height="500" fill="url(#bgGradient)"/>
+  
+  <!-- Terminal window -->
+  <rect x="20" y="20" width="860" height="460" rx="15" fill="#2D2D2D" stroke="#555" stroke-width="2"/>
+  
+  <!-- Traffic light buttons -->
+  <circle cx="50" cy="50" r="8" fill="#FF5F56"/>
+  <circle cx="75" cy="50" r="8" fill="#FFBD2E"/>
+  <circle cx="100" cy="50" r="8" fill="#27CA3F"/>
+  
+  <!-- Welcome text border -->
+  <rect x="60" y="90" width="380" height="40" rx="5" fill="none" stroke="#E07A5F" stroke-width="2" class="glow"/>
+  
+  <!-- Welcome text -->
+  <text x="70" y="115" font-family="monospace" font-size="18" fill="#FFFFFF">✱ Welcome to Claude Code Proxy</text>
+  
+  <!-- Left side: CLAUDE CODE pixelated text -->
+  <!-- C -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="60" y="180" width="10" height="10"/>
+    <rect x="70" y="180" width="10" height="10"/>
+    <rect x="80" y="180" width="10" height="10"/>
+    <rect x="90" y="180" width="10" height="10"/>
+    <rect x="60" y="190" width="10" height="10"/>
+    <rect x="60" y="200" width="10" height="10"/>
+    <rect x="60" y="210" width="10" height="10"/>
+    <rect x="60" y="220" width="10" height="10"/>
+    <rect x="60" y="230" width="10" height="10"/>
+    <rect x="70" y="230" width="10" height="10"/>
+    <rect x="80" y="230" width="10" height="10"/>
+    <rect x="90" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- L -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="110" y="180" width="10" height="10"/>
+    <rect x="110" y="190" width="10" height="10"/>
+    <rect x="110" y="200" width="10" height="10"/>
+    <rect x="110" y="210" width="10" height="10"/>
+    <rect x="110" y="220" width="10" height="10"/>
+    <rect x="110" y="230" width="10" height="10"/>
+    <rect x="120" y="230" width="10" height="10"/>
+    <rect x="130" y="230" width="10" height="10"/>
+    <rect x="140" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- A -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="170" y="180" width="10" height="10"/>
+    <rect x="180" y="180" width="10" height="10"/>
+    <rect x="160" y="190" width="10" height="10"/>
+    <rect x="190" y="190" width="10" height="10"/>
+    <rect x="160" y="200" width="10" height="10"/>
+    <rect x="170" y="200" width="10" height="10"/>
+    <rect x="180" y="200" width="10" height="10"/>
+    <rect x="190" y="200" width="10" height="10"/>
+    <rect x="160" y="210" width="10" height="10"/>
+    <rect x="190" y="210" width="10" height="10"/>
+    <rect x="160" y="220" width="10" height="10"/>
+    <rect x="190" y="220" width="10" height="10"/>
+    <rect x="160" y="230" width="10" height="10"/>
+    <rect x="190" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- U -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="210" y="180" width="10" height="10"/>
+    <rect x="240" y="180" width="10" height="10"/>
+    <rect x="210" y="190" width="10" height="10"/>
+    <rect x="240" y="190" width="10" height="10"/>
+    <rect x="210" y="200" width="10" height="10"/>
+    <rect x="240" y="200" width="10" height="10"/>
+    <rect x="210" y="210" width="10" height="10"/>
+    <rect x="240" y="210" width="10" height="10"/>
+    <rect x="210" y="220" width="10" height="10"/>
+    <rect x="240" y="220" width="10" height="10"/>
+    <rect x="220" y="230" width="10" height="10"/>
+    <rect x="230" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- D -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="270" y="180" width="10" height="10"/>
+    <rect x="280" y="180" width="10" height="10"/>
+    <rect x="290" y="180" width="10" height="10"/>
+    <rect x="270" y="190" width="10" height="10"/>
+    <rect x="300" y="190" width="10" height="10"/>
+    <rect x="270" y="200" width="10" height="10"/>
+    <rect x="300" y="200" width="10" height="10"/>
+    <rect x="270" y="210" width="10" height="10"/>
+    <rect x="300" y="210" width="10" height="10"/>
+    <rect x="270" y="220" width="10" height="10"/>
+    <rect x="300" y="220" width="10" height="10"/>
+    <rect x="270" y="230" width="10" height="10"/>
+    <rect x="280" y="230" width="10" height="10"/>
+    <rect x="290" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- E -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="320" y="180" width="10" height="10"/>
+    <rect x="330" y="180" width="10" height="10"/>
+    <rect x="340" y="180" width="10" height="10"/>
+    <rect x="350" y="180" width="10" height="10"/>
+    <rect x="320" y="190" width="10" height="10"/>
+    <rect x="320" y="200" width="10" height="10"/>
+    <rect x="330" y="200" width="10" height="10"/>
+    <rect x="340" y="200" width="10" height="10"/>
+    <rect x="320" y="210" width="10" height="10"/>
+    <rect x="320" y="220" width="10" height="10"/>
+    <rect x="320" y="230" width="10" height="10"/>
+    <rect x="330" y="230" width="10" height="10"/>
+    <rect x="340" y="230" width="10" height="10"/>
+    <rect x="350" y="230" width="10" height="10"/>
+  </g>
+  
+  <!-- CODE -->
+  <!-- C -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="60" y="280" width="10" height="10"/>
+    <rect x="70" y="280" width="10" height="10"/>
+    <rect x="80" y="280" width="10" height="10"/>
+    <rect x="60" y="290" width="10" height="10"/>
+    <rect x="60" y="300" width="10" height="10"/>
+    <rect x="60" y="310" width="10" height="10"/>
+    <rect x="60" y="320" width="10" height="10"/>
+    <rect x="70" y="320" width="10" height="10"/>
+    <rect x="80" y="320" width="10" height="10"/>
+  </g>
+  
+  <!-- O -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="110" y="280" width="10" height="10"/>
+    <rect x="120" y="280" width="10" height="10"/>
+    <rect x="130" y="280" width="10" height="10"/>
+    <rect x="100" y="290" width="10" height="10"/>
+    <rect x="140" y="290" width="10" height="10"/>
+    <rect x="100" y="300" width="10" height="10"/>
+    <rect x="140" y="300" width="10" height="10"/>
+    <rect x="100" y="310" width="10" height="10"/>
+    <rect x="140" y="310" width="10" height="10"/>
+    <rect x="110" y="320" width="10" height="10"/>
+    <rect x="120" y="320" width="10" height="10"/>
+    <rect x="130" y="320" width="10" height="10"/>
+  </g>
+  
+  <!-- D -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="170" y="280" width="10" height="10"/>
+    <rect x="180" y="280" width="10" height="10"/>
+    <rect x="190" y="280" width="10" height="10"/>
+    <rect x="170" y="290" width="10" height="10"/>
+    <rect x="200" y="290" width="10" height="10"/>
+    <rect x="170" y="300" width="10" height="10"/>
+    <rect x="200" y="300" width="10" height="10"/>
+    <rect x="170" y="310" width="10" height="10"/>
+    <rect x="200" y="310" width="10" height="10"/>
+    <rect x="170" y="320" width="10" height="10"/>
+    <rect x="180" y="320" width="10" height="10"/>
+    <rect x="190" y="320" width="10" height="10"/>
+  </g>
+  
+  <!-- E -->
+  <g fill="#E07A5F" class="pixel-block">
+    <rect x="230" y="280" width="10" height="10"/>
+    <rect x="240" y="280" width="10" height="10"/>
+    <rect x="250" y="280" width="10" height="10"/>
+    <rect x="260" y="280" width="10" height="10"/>
+    <rect x="230" y="290" width="10" height="10"/>
+    <rect x="230" y="300" width="10" height="10"/>
+    <rect x="240" y="300" width="10" height="10"/>
+    <rect x="250" y="300" width="10" height="10"/>
+    <rect x="230" y="310" width="10" height="10"/>
+    <rect x="230" y="320" width="10" height="10"/>
+    <rect x="240" y="320" width="10" height="10"/>
+    <rect x="250" y="320" width="10" height="10"/>
+    <rect x="260" y="320" width="10" height="10"/>
+  </g>
+  
+  <!-- Right side: Savings and pricing -->
+  <!-- 15x CHEAPER text -->
+  <text x="500" y="110" font-family="monospace" font-size="40" fill="#E07A5F" font-weight="bold" class="savings-text">
+    🔥 15x CHEAPER
+  </text>
+  <text x="500" y="135" font-family="monospace" font-size="16" fill="#FFFFFF" font-weight="bold" class="performance-text">
+    95% Equivalent Performance
+  </text>
+  
+  <!-- Anthropic Claude box -->
+  <rect x="500" y="155" width="320" height="90" rx="8" fill="#2D1B20" stroke="#FF4444" stroke-width="2"/>
+  <text x="520" y="180" font-family="monospace" font-size="18" fill="#FF6666" font-weight="bold">Anthropic Claude 3.5 Sonnet</text>
+  <text x="520" y="200" font-family="monospace" font-size="14" fill="#FFAAAA">1M input + 1M output tokens</text>
+  <text x="520" y="225" font-family="monospace" font-size="28" fill="#FF4444" font-weight="bold">$18.00</text>
+  
+  <!-- VS -->
+  <text x="650" y="270" font-family="monospace" font-size="18" fill="#FFFFFF" font-weight="bold">VS</text>
+  
+  <!-- GroqCloud box -->
+  <rect x="500" y="285" width="320" height="90" rx="8" fill="#1B2D1B" stroke="#44FF44" stroke-width="2" class="green-box-shake"/>
+  <text x="520" y="310" font-family="monospace" font-size="18" fill="#66FF66" font-weight="bold" class="green-text-shake">GroqCloud Compound</text>
+  <text x="520" y="330" font-family="monospace" font-size="14" fill="#AAFFAA" class="green-text-shake">1M input + 1M output tokens</text>
+  <text x="520" y="355" font-family="monospace" font-size="28" fill="#44FF44" font-weight="bold" class="green-text-shake">$0.90</text>
+  
+  <!-- Supported providers -->
+  <text x="500" y="410" font-family="monospace" font-size="16" fill="#FFFFFF" font-weight="bold">Supported Providers:</text>
+  <rect x="500" y="420" width="130" height="30" rx="5" fill="#1A2332" stroke="#4A90E2" stroke-width="1"/>
+  <text x="515" y="440" font-family="monospace" font-size="14" fill="#4A90E2">xAI Grok</text>
+  <rect x="650" y="420" width="130" height="30" rx="5" fill="#2D1B32" stroke="#9B59B6" stroke-width="1"/>
+  <text x="665" y="440" font-family="monospace" font-size="14" fill="#9B59B6">GroqCloud</text>
+  
+  <!-- Bottom text -->
+  <text x="60" y="420" font-family="monospace" font-size="16" fill="#CCCCCC">Press Enter to continue</text>
+  <rect x="320" y="408" width="2" height="16" fill="#00FF00" class="cursor-blink"/>
+  
+  <!-- CSS animations -->
+  <style>
+    .pixel-block {
+      animation: pixelFadeIn 2s ease-in-out forwards;
+      opacity: 0;
+    }
+    .pixel-block:nth-child(1) { animation-delay: 0.1s; }
+    .pixel-block:nth-child(2) { animation-delay: 0.2s; }
+    .pixel-block:nth-child(3) { animation-delay: 0.3s; }
+    .pixel-block:nth-child(4) { animation-delay: 0.4s; }
+    .pixel-block:nth-child(5) { animation-delay: 0.5s; }
+    .pixel-block:nth-child(6) { animation-delay: 0.6s; }
+    .pixel-block:nth-child(7) { animation-delay: 0.7s; }
+    .pixel-block:nth-child(8) { animation-delay: 0.8s; }
+    .pixel-block:nth-child(9) { animation-delay: 0.9s; }
+    
+    @keyframes pixelFadeIn {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .glow {
+      filter: drop-shadow(0 0 3px #E07A5F);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 3px #E07A5F); }
+      to { filter: drop-shadow(0 0 8px #FF6B47); }
+    }
+    
+    .savings-text {
+      animation: savingsTextShine 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes savingsTextShine {
+      from { 
+        filter: drop-shadow(0 0 5px #E07A5F);
+        text-shadow: 0 0 10px #E07A5F;
+      }
+      to { 
+        filter: drop-shadow(0 0 10px #FF6B47);
+        text-shadow: 0 0 20px #FF6B47;
+      }
+    }
+    
+    .performance-text {
+      animation: performanceTextFade 3s ease-in-out infinite alternate;
+    }
+    
+    @keyframes performanceTextFade {
+      from { 
+        opacity: 0.7;
+        filter: drop-shadow(0 0 3px #FFFFFF);
+      }
+      to { 
+        opacity: 1;
+        filter: drop-shadow(0 0 6px #32CD32);
+      }
+    }
+    
+    .green-box-shake {
+      animation: greenBoxShake 4s ease-in-out infinite;
+    }
+    
+    .green-text-shake {
+      animation: greenTextShake 4s ease-in-out infinite;
+    }
+    
+    @keyframes greenBoxShake {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -1px); }
+      50% { transform: translate(-1px, 1px); }
+      75% { transform: translate(1px, 1px); }
+    }
+    
+    @keyframes greenTextShake {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -1px); }
+      50% { transform: translate(-1px, 1px); }
+      75% { transform: translate(1px, 1px); }
+    }
+    
+    .cursor-blink {
+      animation: cursorBlink 1s ease-in-out infinite;
+    }
+    
+    @keyframes cursorBlink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+  </style>
+</svg>
