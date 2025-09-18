@@ -8,6 +8,28 @@ As of September 2025, **Claude Code reigns supreme** as the most advanced AI cod
 > *As someone who has always loved and contributed to the open-source community, I believe in freedom of choice when it comes to AI models. This project embodies that philosophy - giving you the power to run whatever model you want, wherever you want, at the price point that works for you.*
 
 
+---
+
+## Supported Providers & Cost Comparison
+
+| Provider/Model | Input ($/M) | Output ($/M) | Rate Limits | Tool Support | Cost vs Claude Sonnet |
+|----------------|-------------|--------------|-------------|--------------|---------------------|
+| **xAI grok-code-fast-1** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
+| **xAI grok-4-0709** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
+| **GroqCloud openai/gpt-oss-120b** | $0.15 | $0.75 | 10-500 RPM, 10K-500K TPM | ✅ Full | **20x cheaper input, 20x cheaper output** |
+| **Anthropic Claude 3.5 Sonnet** | $3.00 | $15.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Reference baseline* |
+| **Anthropic Claude 3 Opus** | $15.00 | $75.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Most expensive option* |
+
+### Real-World Savings Examples
+- **1M input + 1M output tokens on Claude Opus**: $90.00
+- **Same workload on GroqCloud openai/gpt-oss-120b**: $0.90 (100x cheaper!)
+- **Same workload on xAI grok-4-0709**: $1.70 (53x cheaper!)
+- **1M input + 1M output tokens on Claude 3.5 Sonnet**: $18.00
+- **Same workload on GroqCloud**: $0.90 (20x cheaper!)
+- **Same workload on xAI grok-code-fast-1**: $1.70 (11x cheaper!)
+
+
+
 ## How It Works
 
 ClaudeCodeProxy solves this by **intercepting and translating** Claude Code's API calls to work with cheaper alternatives. The breakthrough was creating a Python proxy server that:
@@ -270,25 +292,7 @@ If you notice unexpected charges:
 
 > **Remember**: Even with 15x-20x savings vs Anthropic, costs can add up with heavy usage. Always monitor and set appropriate limits for your needs!
 
----
 
-## Supported Providers & Cost Comparison
-
-| Provider/Model | Input ($/M) | Output ($/M) | Rate Limits | Tool Support | Cost vs Claude Sonnet |
-|----------------|-------------|--------------|-------------|--------------|---------------------|
-| **xAI grok-code-fast-1** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
-| **xAI grok-4-0709** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
-| **GroqCloud openai/gpt-oss-120b** | $0.15 | $0.75 | 10-500 RPM, 10K-500K TPM | ✅ Full | **20x cheaper input, 20x cheaper output** |
-| **Anthropic Claude 3.5 Sonnet** | $3.00 | $15.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Reference baseline* |
-| **Anthropic Claude 3 Opus** | $15.00 | $75.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Most expensive option* |
-
-### Real-World Savings Examples
-- **1M input + 1M output tokens on Claude Opus**: $90.00
-- **Same workload on GroqCloud openai/gpt-oss-120b**: $0.90 (100x cheaper!)
-- **Same workload on xAI grok-4-0709**: $1.70 (53x cheaper!)
-- **1M input + 1M output tokens on Claude 3.5 Sonnet**: $18.00
-- **Same workload on GroqCloud**: $0.90 (20x cheaper!)
-- **Same workload on xAI grok-code-fast-1**: $1.70 (11x cheaper!)
 
 ---
 
