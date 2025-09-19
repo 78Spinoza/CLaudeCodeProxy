@@ -10,7 +10,7 @@ echo [1/2] Starting proxy server...
 start "GroqCloud Proxy" python "%SCRIPT_DIR%groq_claude_proxy_enhanced.py"
 
 REM Wait a moment for server to start
-timeout /t 3 /nobreak >nul
+ping 127.0.0.1 -n 4 >nul
 
 REM Create temporary command file for Claude Code
 echo [2/2] Creating Claude Code command...
