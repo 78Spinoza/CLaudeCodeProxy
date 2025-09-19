@@ -2,9 +2,12 @@
 echo Starting xAI Proxy Server and Claude Code...
 echo.
 
-REM Start proxy server in background
+REM Get the folder where this batch script is located (always ends with \)
+set SCRIPT_DIR=%~dp0
+
+REM Start proxy server in background, using absolute path
 echo [1/2] Starting proxy server...
-start "xAI Proxy" python xai_claude_proxy_enhanced.py
+start "xAI Proxy" python "%SCRIPT_DIR%xai_claude_proxy_enhanced.py"
 
 REM Wait a moment for server to start
 timeout /t 3 /nobreak >nul

@@ -2,9 +2,12 @@
 echo Starting GroqCloud Proxy Server and Claude Code...
 echo.
 
-REM Start proxy server in background
+REM Get the folder where this batch script is located (always ends with \)
+set SCRIPT_DIR=%~dp0
+
+REM Start proxy server in background, using absolute path
 echo [1/2] Starting proxy server...
-start "GroqCloud Proxy" python groq_claude_proxy_enhanced.py
+start "GroqCloud Proxy" python "%SCRIPT_DIR%groq_claude_proxy_enhanced.py"
 
 REM Wait a moment for server to start
 timeout /t 3 /nobreak >nul
