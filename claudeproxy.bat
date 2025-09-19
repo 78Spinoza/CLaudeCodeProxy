@@ -4,10 +4,10 @@ setlocal enabledelayedexpansion
 REM ============================================================================
 REM   CLAUDECODEPROXY ENTRY POINT (Windows)
 REM   - Works from ANY folder
-REM   - Always runs Python + start scripts from this batch file’s location
+REM   - Always runs Python + start scripts from this batch file's location
 REM ============================================================================
 
-REM Move to script’s directory
+REM Move to script's directory
 pushd "%~dp0"
 
 echo(
@@ -24,11 +24,11 @@ if "%~1"=="xai" set PROVIDER=xai
 if "%~1"=="groq" set PROVIDER=groq
 
 REM --- Python check ---
-echo [CHECK] Looking for Python 3.8+
+echo [CHECK] Looking for Python 3.8 or higher
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Python 3.8+ not found in PATH!
-    echo Install Python 3.8+ (https://www.python.org/downloads/) and retry.
+    echo Install Python 3.8+ from https://www.python.org/downloads/ and retry.
     pause
     popd
     exit /b 1
@@ -36,7 +36,7 @@ if %errorlevel% neq 0 (
 
 python -c "import sys; exit(0 if sys.version_info >= (3,8) else 1)" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] Python version too old (need 3.8+)
+    echo [ERROR] Python version too old - need 3.8+
     pause
     popd
     exit /b 1
@@ -116,7 +116,7 @@ if defined PROVIDER (
         echo Both providers configured. Choose one:
         echo 1. xAI Grok
         echo 2. GroqCloud
-        set /p CHOICE=Enter 1 or 2: 
+        set /p CHOICE=Enter 1 or 2:
         if "!CHOICE!"=="1" (
             call "%~dp0start_xai_proxy.bat"
         ) else if "!CHOICE!"=="2" (
