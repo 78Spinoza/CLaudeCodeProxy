@@ -1,0 +1,29 @@
+[package]
+name = "claude-proxy-installer"
+version = "1.0.0"
+description = "Smart installer for Claude Code Proxy"
+authors = ["Claude Code Proxy Team"]
+license = "MIT"
+repository = "https://github.com/78Spinoza/CLaudeCodeProxy"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2.4", features = [] }
+
+[dependencies]
+tauri = { version = "2.4", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+zip = "0.6"
+dirs = "5.0"
+regex = "1.0"
+which = "4.4"
+
+[features]
+# This feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

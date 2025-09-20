@@ -31,7 +31,172 @@ As of September 2025, **Claude Code reigns supreme** as the most advanced AI cod
 - **Same workload on GroqCloud**: $0.90 (20x cheaper!)
 - **Same workload on xAI grok-code-fast-1**: $1.70 (11x cheaper!)
 
+## 🚀 Quick Installation
 
+### Why We Built a Smart Windows Installer
+
+**The Challenge for Non-Technical Users:**
+Setting up Claude Code Proxy traditionally requires installing multiple development frameworks:
+- **Python 3.8+** with pip package manager
+- **Node.js 16+** with npm for Claude Code CLI
+- **Git** version control system
+- **Claude Code CLI** via npm global installation
+- **Python packages** (flask, requests, anthropic) via pip
+
+**For coders, this isn't an obstacle** - you likely have most of these tools already. **But for ordinary people, this is a significant barrier** that prevents them from accessing 15x cheaper Claude Code usage.
+
+**Our Solution: Smart Windows Installer**
+That's why we created a comprehensive Windows installer that eliminates this complexity entirely. It automatically detects what you have, installs what's missing, and gets you running in minutes instead of hours.
+
+### Windows Users - Easy Setup
+**For Windows users, we provide a smart installer that handles everything automatically:**
+
+📦 **Download the Smart Installer**:
+- **Windows x64**: [Download](releases/) `Claude-Proxy-Installer_1.0.0_x64-setup.exe`
+- **Windows x86**: [Download](releases/) `Claude-Proxy-Installer_1.0.0_x86-setup.exe`
+
+The installer automatically:
+- ✅ **Smart Dependency Detection**: Detects existing Python, Node.js, Git, and Claude Code installations
+- ✅ **Download-on-Demand**: Downloads and installs missing dependencies automatically
+- ✅ **Safe PATH Management**: Uses PowerShell to add claude-proxy to PATH (no truncation risk)
+- ✅ **Global Command Access**: Makes `claudeproxy` command available from any folder
+- ✅ **API Key Setup**: Secure configuration for xAI and GroqCloud API keys
+- ✅ **Usage Instructions**: Interactive guidance for first-time setup
+- ✅ **Professional UI**: Vue.js interface with progress tracking and logging
+
+**After Installation**:
+1. Open Command Prompt
+2. Navigate to your project: `cd C:\YourProject`
+3. Run: `claudeproxy`
+4. Choose your AI provider and start saving 15-20x on costs!
+
+### Linux/macOS Users
+**You're already hackers, so you should be fine with the manual setup using the Python scripts.** 😉
+
+Since Linux/macOS users typically have development experience and are comfortable with terminal-based installation, you can handle the traditional multi-framework setup:
+
+**Manual setup process:**
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/ClaudeCodeProxy.git
+cd ClaudeCodeProxy
+
+# Run the Python setup script (handles dependencies automatically)
+python claudeproxysetup.py
+```
+
+The Python setup script will guide you through installing any missing components (Python packages, Claude Code CLI, etc.) and configuring your API keys.
+
+> **Future Enhancement**: We may create a Linux/macOS Tauri installer later for easier cross-platform setup. The current smart installer architecture could be extended to support additional platforms with minimal changes.
+
+## ⚠️ Important Installation Requirements
+
+### Windows Smart Installer Prerequisites
+
+#### 🛡️ Critical: Antivirus Configuration
+**MUST disable antivirus completely during build/installation:**
+- ✅ **Disable real-time protection** in Windows Defender or third-party antivirus
+- ❌ **Adding exceptions will NOT work** - full disable required
+- ⚡ **Why**: Tauri build process and installer executable trigger false positives
+- 🔄 **Re-enable after installation** completes successfully
+
+#### 💻 System Requirements
+- **Windows 7/10/11** (x64 or x86 architecture)
+- **2GB RAM minimum** for installation process
+- **500MB free disk space** for proxy scripts and dependencies
+- **Internet connection** for downloading missing dependencies (Python, Node.js, Git, Claude Code)
+- **Administrative privileges** may be required for system-wide installations
+
+#### 🔧 Prerequisites the Installer Handles
+The smart installer **automatically detects and installs** these if missing:
+- **Python 3.8+** with pip package manager
+- **Node.js 16+** with npm package manager
+- **Git** version control system
+- **Claude Code CLI** (@anthropics/claude-code)
+- **Required Python packages** (flask, requests, anthropic)
+
+#### 🚨 Common Installation Issues & Solutions
+
+**Issue: "Access is denied" during build**
+- **Cause**: Antivirus blocking file operations or old installer process running
+- **Solution**:
+  1. Disable antivirus completely (not just exceptions)
+  2. Close any running installer processes
+  3. Run command prompt as administrator
+  4. Retry build command
+
+**Issue: "Target i686-pc-windows-msvc is not installed"**
+- **Cause**: Missing 32-bit compilation target
+- **Solution**: `rustup target add i686-pc-windows-msvc`
+
+**Issue: Long compilation times on first x86 build**
+- **Cause**: Rust rebuilding all dependencies for new architecture
+- **Normal**: First x86 build takes 10-20 minutes, subsequent builds much faster
+
+**Issue: Claude Code not detected despite being installed**
+- **Cause**: Installation in non-standard location or PATH issues
+- **Solution**: Installer uses 5 detection methods and should find most installations
+- **Fallback**: Use "Skip Installation & Go to API Keys" option
+
+**Issue: Desktop shortcuts not working**
+- **Cause**: Python not in PATH or proxy scripts not extracted
+- **Solution**: Run installer as administrator, ensure Python is accessible globally
+
+#### 🔍 Installation Process Steps
+The installer follows this sequence:
+
+1. **🔍 Dependency Detection Phase**
+   - Scans system for existing Python, Node.js, Git, Claude Code
+   - Shows real-time progress with detailed status updates
+   - Uses 5 different detection methods for maximum compatibility
+   - Allows user to review findings before proceeding
+
+2. **⚙️ Installation Phase** (only if user proceeds)
+   - Downloads and installs missing dependencies automatically
+   - Extracts embedded proxy scripts to `%USERPROFILE%\claude-proxy\`
+   - Creates desktop shortcuts for easy proxy launching
+   - Configures environment variables securely
+
+3. **🔑 API Key Configuration**
+   - Detects existing xAI and GroqCloud API keys
+   - Provides setup instructions with direct provider links
+   - Allows keeping existing keys or replacing with new ones
+   - Sets secure environment variables for API access
+
+4. **✅ Installation Completion**
+   - Provides usage commands and workflow instructions
+   - Shows installation directory location
+   - Offers to launch proxy immediately
+   - Creates foundation for future script-only updates
+
+#### 🛠️ Manual Installation Fallback
+If the installer fails, you can always fall back to manual setup:
+```bash
+# Clone repository
+git clone https://github.com/your-repo/ClaudeCodeProxy.git
+cd ClaudeCodeProxy
+
+# Run Python setup script
+python claudeproxysetup.py
+```
+
+#### 📋 Pre-Installation Checklist
+Before running the installer:
+- [ ] **Disable antivirus** completely (critical step)
+- [ ] **Close existing terminals** and Claude Code instances
+- [ ] **Ensure administrator access** if needed
+- [ ] **Have API keys ready** (optional - can configure later)
+- [ ] **Check available disk space** (500MB minimum)
+- [ ] **Verify internet connection** for dependency downloads
+
+#### 🎯 Post-Installation Verification
+After successful installation:
+- [ ] **Desktop shortcuts created** (xAI and GroqCloud launchers)
+- [ ] **Proxy scripts exist** in `%USERPROFILE%\claude-proxy\`
+- [ ] **Environment variables set** (XAI_API_KEY, GROQ_API_KEY if configured)
+- [ ] **Claude Code accessible** via command line
+- [ ] **Python dependencies installed** (flask, requests, anthropic)
+- [ ] **Test basic functionality** with provided commands
 
 ## How It Works
 
@@ -454,6 +619,72 @@ If you prefer manual setup:
 
 ---
 
+## 🔧 For Developers: Smart Installer Project
+
+### Building the Installer
+
+The smart installer is built using **Tauri** (Rust backend + Vue.js frontend) and is located in the `claude-proxy-installer/` directory.
+
+**Prerequisites:**
+- Rust with Cargo
+- Node.js 16+ and npm
+- Tauri CLI: `npm install -g @tauri-apps/cli`
+
+**Development Commands:**
+```bash
+cd claude-proxy-installer
+
+# Install frontend dependencies
+npm install
+
+# Development mode (hot reload)
+npm run tauri dev
+
+# Production build
+npm run tauri build
+```
+
+**Build Output:**
+- **Windows**: `src-tauri/target/release/bundle/nsis/Claude Proxy Installer_1.0.0_x64-setup.exe`
+- **Architecture**: Supports both x64 and x86 builds
+
+**Key Features:**
+- Smart dependency detection (Python, Node.js, Git, Claude Code)
+- Safe PATH management using PowerShell (no truncation risk)
+- Professional Vue.js UI with progress tracking
+- Secure API key configuration
+- Global `claudeproxy` command installation
+
+**Important Build Notes:**
+- **MUST disable antivirus completely** during build (adding exceptions won't work)
+- Clean all compiler warnings before committing
+- Test on clean Windows VM to verify dependency installation
+
+### Project Structure
+```
+claude-proxy-installer/
+├── src/                 # Vue.js frontend
+│   ├── App.vue         # Main installer UI
+│   └── main.js         # Vue app entry point
+├── src-tauri/          # Rust backend
+│   ├── src/
+│   │   ├── main.rs     # Tauri commands
+│   │   ├── installer.rs # Installation logic
+│   │   ├── downloader.rs # Dependency downloads
+│   │   └── dependency_detector.rs # System scanning
+│   ├── tauri.conf.json # Tauri configuration
+│   └── Cargo.toml      # Rust dependencies
+└── dist/               # Built frontend (generated)
+```
+
+**Contributing:**
+- Follow the existing code style
+- Update CLAUDE.md with session state information
+- Test installers on clean systems before releasing
+- Maintain .gitignore to exclude build artifacts
+
+---
+
 ## Usage Guide
 
 ### Option 1: Enhanced Proxies (Recommended - FULL TOOLS)
@@ -866,6 +1097,206 @@ Contributions welcome! Areas for improvement:
 - LiteLLM integration for broader provider support
 
 **Fork this repo** and submit PRs for enhancements.
+
+---
+
+## 🔄 Release Strategy & Updates
+
+### Current Release: Smart Installer Foundation
+This release focuses on providing a **solid foundation** for Windows users with the smart installer that handles all dependencies and setup automatically.
+
+### Future Release Strategy
+**Future releases will be lean and focused:**
+
+- 🎯 **Proxy Script Updates Only** - New releases will primarily contain updated Python proxy scripts
+- 🔄 **Manual Replacement** - Simply replace the proxy scripts in your `~/claude-proxy/` directory
+- 📦 **No Full Reinstalls** - The installer provides the foundation once; updates are just script swaps
+- ⚡ **Faster Updates** - Quick script updates instead of full installer rebuilds
+- 🛠️ **Enhanced Features** - Improved model mappings, better error handling, new provider support
+
+### Why This Approach?
+- **Efficiency**: No need to rebuild dependencies or reconfigure environments
+- **Simplicity**: Users can easily update proxy scripts without reinstaller overhead
+- **Flexibility**: Power users can customize and modify scripts as needed
+- **Reliability**: Stable foundation with iterative improvements
+
+**Windows users** get the best of both worlds: Easy initial setup with the smart installer, then simple script-based updates going forward.
+
+---
+
+## 🏗️ Smart Installer Technical Details
+
+### Architecture Overview
+
+The Claude Code Proxy installer is built using **Tauri v2**, a modern framework that combines Rust backend performance with web frontend technologies. This creates a lightweight, secure, and cross-platform installer.
+
+#### Technology Stack
+- **Frontend**: Vue.js 3 with Composition API for reactive UI
+- **Backend**: Rust with async/await for system operations
+- **Framework**: Tauri v2 for native app packaging
+- **Build System**: Vite for frontend bundling, Cargo for Rust compilation
+- **Packaging**: MSI and NSIS installers for Windows distribution
+
+#### Key Features
+- **Embedded Scripts**: All proxy files baked into executable using `include_bytes!` macro
+- **Two-Phase Installation**: Separate dependency detection and installation phases
+- **Real-time Progress**: Event-driven progress updates via Tauri's IPC system
+- **Multi-Architecture**: Supports both x64 and x86 Windows systems
+- **Self-Contained**: No internet required during installation (dependencies downloaded as needed)
+
+### Installation Flow Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Welcome       │───▶│   Detection     │───▶│  Installation   │
+│   Screen        │    │   Phase         │    │   Phase         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │                        │
+                              ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │ Bulletproof     │    │ Embedded Script │
+                       │ Detection:      │    │ Extraction:     │
+                       │ • Commands      │    │ • Proxy files   │
+                       │ • PATH search   │    │ • Batch scripts │
+                       │ • npm global    │    │ • Shell scripts │
+                       │ • npx check     │    │ • Setup tools   │
+                       │ • Common paths  │    │                 │
+                       └─────────────────┘    └─────────────────┘
+                              │                        │
+                              ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │ User Review     │    │ Shortcut        │
+                       │ • Found deps    │    │ Creation        │
+                       │ • Missing deps  │    │                 │
+                       │ • Proceed/Skip  │    │                 │
+                       └─────────────────┘    └─────────────────┘
+                              │                        │
+                              └────────┬───────────────┘
+                                       ▼
+                               ┌─────────────────┐
+                               │ API Key         │
+                               │ Configuration   │
+                               └─────────────────┘
+```
+
+### Component Architecture
+
+#### Rust Backend (`src-tauri/src/`)
+- **`main.rs`**: Tauri commands, event emission, window management
+- **`dependency_detector.rs`**: Multi-method system dependency detection
+- **`installer.rs`**: Embedded file extraction, shortcut creation
+- **`downloader.rs`**: Dependency download and installation logic
+
+#### Vue.js Frontend (`src/`)
+- **`App.vue`**: Main application component with installation flow
+- **`styles.css`**: Professional UI styling with animations
+- **Event Handling**: Real-time progress updates via Tauri events
+
+#### Embedded Resources
+- **Proxy Scripts**: Python files embedded as binary data in executable
+- **Batch Files**: Windows launcher scripts for easy proxy startup
+- **Shell Scripts**: Unix-compatible launcher scripts
+
+---
+
+## 🛠️ Building the Installer (For Developers)
+
+### Prerequisites
+
+1. **Install Rust** (latest stable):
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+2. **Install Node.js** (v16+):
+```bash
+# Download from nodejs.org or use package manager
+```
+
+3. **Install Tauri CLI**:
+```bash
+cargo install tauri-cli
+```
+
+4. **Add Windows targets** (for cross-compilation):
+```bash
+rustup target add x86_64-pc-windows-msvc
+rustup target add i686-pc-windows-msvc
+```
+
+### Build Instructions
+
+#### Setup Development Environment
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/ClaudeCodeProxy.git
+cd ClaudeCodeProxy/claude-proxy-installer
+
+# Install frontend dependencies
+npm install
+```
+
+#### Development Build (Hot Reload)
+```bash
+# Start development server with hot reload
+tauri dev
+```
+
+#### Production Builds
+
+**Build x64 version**:
+```bash
+tauri build
+```
+
+**Build x86 version**:
+```bash
+tauri build --target i686-pc-windows-msvc
+```
+
+**Build both architectures**:
+```bash
+# Build x64
+tauri build
+
+# Build x86 (requires i686 target)
+tauri build --target i686-pc-windows-msvc
+```
+
+#### Output Locations
+- **x64 installer**: `src-tauri/target/release/bundle/msi/`
+- **x86 installer**: `src-tauri/target/i686-pc-windows-msvc/release/bundle/msi/`
+
+### Configuration Files
+
+#### `tauri.conf.json`
+- Application metadata and window configuration
+- Bundle settings for MSI/NSIS generation
+- Security capabilities for event system
+
+#### `Cargo.toml`
+- Rust dependencies and build configuration
+- Tauri features and async runtime setup
+
+#### `package.json`
+- Frontend dependencies and build scripts
+- Vue.js and Vite configuration
+
+### Development Tips
+
+1. **Hot Reload**: Use `tauri dev` for rapid UI development
+2. **Debug Mode**: Enable Rust debug prints with `RUST_LOG=debug`
+3. **Frontend Debug**: Use browser dev tools in Tauri window
+4. **Build Optimization**: Release builds are optimized for size and performance
+5. **Cross-Platform**: Test on different Windows versions for compatibility
+
+### Architecture Benefits
+
+- **Performance**: Rust backend provides native speed for file operations
+- **Security**: Tauri's sandboxed environment with explicit capabilities
+- **Size**: Smaller bundle than Electron-based alternatives
+- **Reliability**: Compiled binary with embedded resources eliminates external dependencies
+- **Maintainability**: Clear separation between UI and system operations
 
 ---
 

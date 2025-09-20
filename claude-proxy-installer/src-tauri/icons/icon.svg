@@ -1,0 +1,36 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E07A5F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D67B5F;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGradient)"/>
+
+  <!-- Terminal window outline -->
+  <rect x="80" y="120" width="352" height="272" rx="20" fill="#2D2D2D" stroke="#555" stroke-width="3"/>
+
+  <!-- Traffic light buttons -->
+  <circle cx="110" cy="155" r="8" fill="#FF5F56"/>
+  <circle cx="130" cy="155" r="8" fill="#FFBD2E"/>
+  <circle cx="150" cy="155" r="8" fill="#27CA3F"/>
+
+  <!-- Simplified "C" for Claude Code -->
+  <g fill="#FFFFFF" stroke="#E07A5F" stroke-width="2">
+    <!-- Letter C -->
+    <path d="M 150 200 L 200 200 L 200 220 L 150 220 L 150 280 L 200 280 L 200 300 L 150 300 L 130 300 L 130 200 Z"/>
+
+    <!-- Letter C (second one for "Code") -->
+    <path d="M 220 200 L 270 200 L 270 220 L 220 220 L 220 280 L 270 280 L 270 300 L 220 300 L 200 300 L 200 200 Z"/>
+
+    <!-- Proxy symbol (arrow) -->
+    <path d="M 300 230 L 350 230 L 340 220 L 360 240 L 340 260 L 350 250 L 300 250 Z" fill="#27CA3F"/>
+  </g>
+
+  <!-- Text at bottom -->
+  <text x="256" y="360" font-family="monospace" font-size="24" fill="#FFFFFF" text-anchor="middle" font-weight="bold">PROXY</text>
+  <text x="256" y="380" font-family="monospace" font-size="16" fill="#CCCCCC" text-anchor="middle">15x Cheaper</text>
+</svg>

@@ -1,0 +1,69 @@
+{
+  "productName": "Claude Proxy Installer",
+  "version": "1.0.0",
+  "identifier": "com.claudeproxy.installer",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": {
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "main",
+          "description": "Main app permissions",
+          "windows": ["main"],
+          "permissions": [
+            "core:event:default",
+            "core:window:default"
+          ]
+        }
+      ]
+    },
+    "windows": [
+      {
+        "label": "main",
+        "fullscreen": false,
+        "resizable": true,
+        "title": "Claude Proxy Installer",
+        "width": 600,
+        "height": 580,
+        "minWidth": 500,
+        "minHeight": 480,
+        "center": true,
+        "focus": true,
+        "visible": true,
+        "alwaysOnTop": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "externalBin": [],
+    "windows": {
+      "allowDowngrades": true,
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "headerImage": null,
+        "sidebarImage": null,
+        "customLanguageFiles": {
+          "installer.nsh": "nsis/installer.nsh"
+        }
+      }
+    },
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.svg"
+    ],
+    "copyright": "Copyright © 2024 Claude Code Proxy",
+    "category": "DeveloperTool",
+    "shortDescription": "Smart installer for Claude Code Proxy",
+    "longDescription": "Automatically detects and installs dependencies for Claude Code Proxy including Python, Node.js, Git, and Claude CLI with smart download management."
+  },
+  "plugins": {}
+}
