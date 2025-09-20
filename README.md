@@ -13,28 +13,6 @@ As of September 2025, **Claude Code reigns supreme** as the most advanced AI cod
 
 ---
 
-## Supported Providers & Cost Comparison
-
-| Provider/Model | Input ($/M) | Output ($/M) | Rate Limits | Tool Support | Cost vs Claude Sonnet |
-|----------------|-------------|--------------|-------------|--------------|---------------------|
-| **xAI grok-code-fast-1** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
-| **xAI grok-4-0709** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
-| **GroqCloud openai/gpt-oss-120b** | $0.15 | $0.75 | 10-500 RPM, 10K-500K TPM | ✅ Full | **20x cheaper input, 20x cheaper output** |
-| **Anthropic Claude 3.5 Sonnet** | $3.00 | $15.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Reference baseline* |
-| **Anthropic Claude 3 Opus** | $15.00 | $75.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Most expensive option* |
-
-### Real-World Savings Examples
-- **1M input + 1M output tokens on Claude Opus**: $90.00
-- **Same workload on GroqCloud openai/gpt-oss-120b**: $0.90 (100x cheaper!)
-- **Same workload on xAI grok-4-0709**: $1.70 (53x cheaper!)
-- **1M input + 1M output tokens on Claude 3.5 Sonnet**: $18.00
-- **Same workload on GroqCloud**: $0.90 (20x cheaper!)
-- **Same workload on xAI grok-code-fast-1**: $1.70 (11x cheaper!)
-
-## 🚀 Quick Installation
-
-### 📥 Download Setup (Windows)
-
 <div align="center">
 
 ## 🚀 DOWNLOAD CLAUDE PROXY INSTALLER
@@ -67,14 +45,32 @@ Windows 7/8/10 - 32-bit
 ### 🚨 Not sure which one?
 **Download the x64 version** - it works on 99% of modern Windows computers.
 
----
-
 ### Linux/macOS Users
 You're already hackers, so you can handle the [manual setup](#manual-installation-advanced-users) using the Python scripts. 😉
 
 </div>
 
 ---
+
+## Supported Providers & Cost Comparison
+
+| Provider/Model | Input ($/M) | Output ($/M) | Rate Limits | Tool Support | Cost vs Claude Sonnet |
+|----------------|-------------|--------------|-------------|--------------|---------------------|
+| **xAI grok-code-fast-1** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
+| **xAI grok-4-0709** | $0.20 | $1.50 | 480-600 RPM, ~2M TPM | ✅ **TESTED FULL** | **15x cheaper input, 10x cheaper output** |
+| **GroqCloud openai/gpt-oss-120b** | $0.15 | $0.75 | 10-500 RPM, 10K-500K TPM | ✅ Full | **20x cheaper input, 20x cheaper output** |
+| **Anthropic Claude 3.5 Sonnet** | $3.00 | $15.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Reference baseline* |
+| **Anthropic Claude 3 Opus** | $15.00 | $75.00 | 50-100 RPM, 20K-50K TPM | ✅ Full | *Most expensive option* |
+
+### Real-World Savings Examples
+- **1M input + 1M output tokens on Claude Opus**: $90.00
+- **Same workload on GroqCloud openai/gpt-oss-120b**: $0.90 (100x cheaper!)
+- **Same workload on xAI grok-4-0709**: $1.70 (53x cheaper!)
+- **1M input + 1M output tokens on Claude 3.5 Sonnet**: $18.00
+- **Same workload on GroqCloud**: $0.90 (20x cheaper!)
+- **Same workload on xAI grok-code-fast-1**: $1.70 (11x cheaper!)
+
+## 🚀 Quick Installation
 
 ### Why We Built a Smart Windows Installer
 
