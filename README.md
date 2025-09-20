@@ -33,6 +33,17 @@ As of September 2025, **Claude Code reigns supreme** as the most advanced AI cod
 
 ## 🚀 Quick Installation
 
+### 📥 Download Setup (Windows)
+
+**Windows Users - One-Click Installation:**
+- **[📥 Download for Windows x64](https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.0/Claude%20Proxy%20Installer_1.0.0_x64-setup.exe)** (2.5MB) - *Recommended for most users*
+- **[📥 Download for Windows x86](https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.0/Claude%20Proxy%20Installer_1.0.0_x86-setup.exe)** (2.3MB) - *For older 32-bit systems*
+
+**Linux/macOS Users:**
+You're already hackers, so you can handle the [manual setup](#manual-installation-advanced-users) using the Python scripts. 😉
+
+---
+
 ### Why We Built a Smart Windows Installer
 
 **The Challenge for Non-Technical Users:**
@@ -52,8 +63,8 @@ That's why we created a comprehensive Windows installer that eliminates this com
 **For Windows users, we provide a smart installer that handles everything automatically:**
 
 📦 **Download the Smart Installer**:
-- **Windows x64**: [Download](releases/) `Claude-Proxy-Installer_1.0.0_x64-setup.exe`
-- **Windows x86**: [Download](releases/) `Claude-Proxy-Installer_1.0.0_x86-setup.exe`
+- **Windows x64**: [Download Claude-Proxy-Installer_1.0.0_x64-setup.exe](https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.0/Claude%20Proxy%20Installer_1.0.0_x64-setup.exe) (2.5MB)
+- **Windows x86**: [Download Claude-Proxy-Installer_1.0.0_x86-setup.exe](https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.0/Claude%20Proxy%20Installer_1.0.0_x86-setup.exe) (2.3MB)
 
 The installer automatically:
 - ✅ **Smart Dependency Detection**: Detects existing Python, Node.js, Git, and Claude Code installations
