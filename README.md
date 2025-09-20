@@ -1,17 +1,4 @@
 ![Claude Code Proxy Banner](./claude-code-proxy-banner.svg)
-# ClaudeCodeProxy
-
-**Run Claude Code **🔥 15x cheaper with FULL tool support - file editing, code execution, web search - everything works!**
-
-> **🌟 Creator's Pick**: **GroqCloud openai/gpt-oss-120b** is my absolute favorite newly released low-cost, high-performance model. It delivers incredible speed and quality at just $0.15/$0.75 per million tokens - **20x cheaper than Claude** while maintaining excellent coding capabilities. This is the model I personally use for all my development work.
-
-As of September 2025, **Claude Code reigns supreme** as the most advanced AI coding assistant available. Its intuitive interface, powerful planning capabilities, seamless integration with development workflows, and **comprehensive tool ecosystem** make it the gold standard for AI-assisted programming. However, its premium pricing can be prohibitive for many developers and teams.
-
-> *As someone who has always loved and contributed to the open-source community, I believe in freedom of choice when it comes to AI models. This project embodies that philosophy - giving you the power to run whatever model you want, wherever you want, at the price point that works for you.*
-
-**🆓 Ultimate Flexibility**: Want even more control? You can host models yourself locally or use your favorite LLM provider through ClaudeCodeProxy. **No subscriptions required** - pay only for what you use, when you use it. Whether it's your own self-hosted model, a different cloud provider, or any API-compatible service, ClaudeCodeProxy can bridge it to Claude Code's interface.
-
----
 
 <div align="center">
 
@@ -49,6 +36,20 @@ Windows 7/8/10 - 32-bit
 You're already hackers, so you can handle the [manual setup](#manual-installation-advanced-users) using the Python scripts. 😉
 
 </div>
+
+---
+
+# ClaudeCodeProxy
+
+**Run Claude Code **🔥 15x cheaper with FULL tool support - file editing, code execution, web search - everything works!**
+
+> **🌟 Creator's Pick**: **GroqCloud openai/gpt-oss-120b** is my absolute favorite newly released low-cost, high-performance model. It delivers incredible speed and quality at just $0.15/$0.75 per million tokens - **20x cheaper than Claude** while maintaining excellent coding capabilities. This is the model I personally use for all my development work.
+
+As of September 2025, **Claude Code reigns supreme** as the most advanced AI coding assistant available. Its intuitive interface, powerful planning capabilities, seamless integration with development workflows, and **comprehensive tool ecosystem** make it the gold standard for AI-assisted programming. However, its premium pricing can be prohibitive for many developers and teams.
+
+> *As someone who has always loved and contributed to the open-source community, I believe in freedom of choice when it comes to AI models. This project embodies that philosophy - giving you the power to run whatever model you want, wherever you want, at the price point that works for you.*
+
+**🆓 Ultimate Flexibility**: Want even more control? You can host models yourself locally or use your favorite LLM provider through ClaudeCodeProxy. **No subscriptions required** - pay only for what you use, when you use it. Whether it's your own self-hosted model, a different cloud provider, or any API-compatible service, ClaudeCodeProxy can bridge it to Claude Code's interface.
 
 ---
 
