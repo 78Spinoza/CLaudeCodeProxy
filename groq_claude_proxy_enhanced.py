@@ -31,7 +31,19 @@ import socket
 import time
 import winreg
 import logging
+import threading
+import sys
 from flask import Flask, request, jsonify
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Suppress Flask development server warning
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -50,12 +62,12 @@ class GroqModelSelector:
         Returns: (model_name, reasoning_level, supports_tools)
         """
         if has_web_search:
-            print(f"[WEB SEARCH] Using {cls.COMPOUND_MODEL} for web search capability")
+            logger.info(f"[WEB SEARCH] Using {cls.COMPOUND_MODEL} for web search capability")
             return cls.COMPOUND_MODEL, None, False
 
         # Detect reasoning complexity for OSS model
         reasoning_level = cls._detect_reasoning_complexity(messages, model_name)
-        print(f"[TOOLS] Using {cls.OSS_MODEL} with {reasoning_level} reasoning")
+        logger.debug(f"[TOOLS] Using {cls.OSS_MODEL} with {reasoning_level} reasoning")
         return cls.OSS_MODEL, reasoning_level, True
 
     @classmethod
@@ -63,7 +75,7 @@ class GroqModelSelector:
         """Detect reasoning complexity from messages and model selection."""
         # Upgrade for Opus requests
         if "claude-3-opus" in model_name.lower() or "opus" in model_name.lower():
-            print(f"[REASONING] Detected Opus request: {model_name} -> HIGH reasoning")
+            logger.info(f"[REASONING] Detected Opus request: {model_name} -> HIGH reasoning")
             return "high"
 
         # Analyze message content for complexity indicators
@@ -86,12 +98,9 @@ class GroqModelSelector:
 
         reasoning_score = sum(1 for keyword in reasoning_keywords if keyword in text_content)
 
-        if reasoning_score >= 3:
+        if reasoning_score >= 1:
             return "high"
-        elif reasoning_score >= 1:
-            return "medium"
-        else:
-            return "medium"  # Default level
+        return "high"  # Default to high level
 
 
 class ClaudeToolMapper:
@@ -103,16 +112,28 @@ class ClaudeToolMapper:
         "edit_file": "Edit", "multi_edit_file": "MultiEdit", "run_bash": "Bash",
         "run_cmd": "Bash", "search_files": "Glob", "grep_search": "Grep",
         "web_search": "WebSearch", "browser_search": "WebSearch", "web_fetch": "WebFetch",
-        "manage_todos": "TodoWrite", "get_bash_output": "BashOutput",
-        "kill_bash_shell": "KillShell", "edit_notebook": "NotebookEdit",
-        "delegate_task": "Task", "exit_plan_mode": "ExitPlanMode"
+        "manage_todos": "TodoWrite", "todo_write": "TodoWrite", 
+        "get_bash_output": "BashOutput", "kill_bash_shell": "KillShell", 
+        "edit_notebook": "NotebookEdit", "delegate_task": "Task", 
+        "exit_plan_mode": "ExitPlanMode",
+        # Functions/ prefixed versions
+        "functions/read_file": "Read", "functions/open_file": "Read", 
+        "functions/write_file": "Write", "functions/edit_file": "Edit", 
+        "functions/multi_edit_file": "MultiEdit", "functions/run_bash": "Bash",
+        "functions/run_cmd": "Bash", "functions/search_files": "Glob", 
+        "functions/grep_search": "Grep", "functions/web_search": "WebSearch", 
+        "functions/browser_search": "WebSearch", "functions/web_fetch": "WebFetch",
+        "functions/manage_todos": "TodoWrite", "functions/todo_write": "TodoWrite",
+        "functions/get_bash_output": "BashOutput", "functions/kill_bash_shell": "KillShell",
+        "functions/edit_notebook": "NotebookEdit", "functions/delegate_task": "Task",
+        "functions/exit_plan_mode": "ExitPlanMode"
     }
 
     @classmethod
     def generate_ultra_simple_tools(cls):
         """Generate ultra-simple tool schemas that GroqCloud accepts."""
         return [
-            # File Operations
+            # File Operations with correct types
             cls._file_tool("read_file", "Read contents of a file", {
                 "file_path": {"type": "string", "description": "Path to the file"}, 
                 "path": {"type": "string", "description": "Path to the file (alternative)"},
@@ -137,7 +158,7 @@ class ClaudeToolMapper:
             }, ["file_path", "old_string", "new_string"]),
             cls._file_tool("multi_edit_file", "Make multiple edits to one file", {
                 "file_path": {"type": "string", "description": "Path to the file"}, 
-                "edits": {"type": "string", "description": "JSON string containing array of edit operations"}
+                "edits": {"type": "array", "description": "Array of edit operations", "items": {"type": "object"}}
             }, ["file_path", "edits"]),
 
             # System Operations
@@ -162,12 +183,19 @@ class ClaudeToolMapper:
                 "glob": {"type": "string", "description": "File filter like *.py"}
             }, ["pattern"]),
 
-            # Advanced Tools
+            # Todo Operations - Both variants
             cls._file_tool("manage_todos", "Manage todo list", {
                 "todos": {"type": "array", "items": {"type": "object", "properties": {
                     "content": {"type": "string"}, "status": {"type": "string"}, "activeForm": {"type": "string"}
                 }, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}
             }, ["todos"]),
+            cls._file_tool("todo_write", "Write todo items", {
+                "todos": {"type": "array", "items": {"type": "object", "properties": {
+                    "content": {"type": "string"}, "status": {"type": "string"}, "activeForm": {"type": "string"}
+                }, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}
+            }, ["todos"]),
+
+            # Advanced Tools
             cls._file_tool("get_bash_output", "Get output from background bash process", {
                 "bash_id": {"type": "string", "description": "Background process ID"}
             }, ["bash_id"]),
@@ -187,6 +215,9 @@ class ClaudeToolMapper:
             cls._file_tool("browser_search", "Search the web for current information using GroqCloud's native browser search (powered by Exa).", {
                 "query": {"type": "string", "description": "Search query"}
             }, ["query"]),
+            cls._file_tool("web_search", "Search the web for current information", {
+                "query": {"type": "string", "description": "Search query"}
+            }, ["query"]),
             cls._file_tool("web_fetch", "Fetch content from a web URL", {
                 "url": {"type": "string", "description": "URL to fetch"}, 
                 "prompt": {"type": "string", "description": "Prompt for processing content"}
@@ -199,12 +230,6 @@ class ClaudeToolMapper:
     @classmethod
     def _file_tool(cls, name, description, properties, required):
         """Helper to create tool schema with consistent format."""
-        # Properties should now already be in the correct format with type and description
-        # But keep the fallback for backward compatibility
-        if isinstance(properties, dict) and all(isinstance(v, str) for v in properties.values()):
-            # Convert string descriptions to proper property objects
-            properties = {k: {"type": "string", "description": v} for k, v in properties.items()}
-
         return {
             "type": "function",
             "function": {
@@ -282,24 +307,51 @@ class GroqApiClient:
             return False
 
     def send_request(self, request_data):
-        """Send request to GroqCloud API with error handling."""
+        """Send request to GroqCloud API with error handling and retry logic."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
 
-        try:
-            response = requests.post(self.base_url, headers=headers, json=request_data)
-            if response.status_code == 200:
-                return response.json(), None
-            else:
-                error_msg = f"GroqCloud API Error: {response.status_code} {response.text}"
-                print(f"[ERROR] {error_msg}")
-                return None, error_msg
-        except Exception as e:
-            error_msg = f"Request failed: {str(e)}"
-            print(f"[ERROR] {error_msg}")
-            return None, error_msg
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(self.base_url, headers=headers, json=request_data, timeout=60)
+                
+                if response.status_code == 200:
+                    logger.debug(f"Request successful on attempt {attempt + 1}")
+                    return response.json(), None
+                elif response.status_code == 429:
+                    # Rate limit handling
+                    wait_time = min(2 ** attempt, 30)
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Rate limit hit on attempt {attempt + 1}/{max_retries}. Waiting {wait_time}s before retry...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"Rate limit exceeded after {max_retries} attempts")
+                else:
+                    error_msg = f"GroqCloud API Error: {response.status_code} {response.text}"
+                    logger.error(error_msg)
+                    if attempt < max_retries - 1:
+                        wait_time = min(2 ** attempt, 15)
+                        logger.warning(f"Request failed on attempt {attempt + 1}. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                        continue
+                    return None, error_msg
+                    
+            except Exception as e:
+                error_msg = f"Request failed: {str(e)}"
+                if attempt < max_retries - 1:
+                    wait_time = min(2 ** attempt, 15)
+                    logger.warning(f"Request failed on attempt {attempt + 1}: {e}. Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(error_msg)
+                    return None, error_msg
+        
+        return None, "All retry attempts failed"
 
 
 class MessageTransformer:
@@ -413,7 +465,34 @@ class GroqClaudeProxy:
     def __init__(self):
         self.app = Flask(__name__)
         self.api_client = GroqApiClient()
+        self.running = True
         self.setup_routes()
+
+    def console_input_handler(self):
+        """Handle console input commands in a separate thread."""
+        try:
+            while self.running:
+                try:
+                    user_input = input().strip().upper()
+                    if user_input == 'R':
+                        logger.info("Restart command received")
+                        logger.info("Restarting proxy with updated code...")
+                        os.execv(sys.executable, ['python'] + sys.argv)
+                    elif user_input == 'Q' or user_input == 'QUIT':
+                        logger.info("Quit command received")
+                        logger.info("Shutting down proxy...")
+                        self.running = False
+                        os._exit(0)
+                    elif user_input == 'H' or user_input == 'HELP':
+                        logger.info("Available commands:")
+                        logger.info("  R - Restart proxy (reload code changes)")
+                        logger.info("  Q - Quit proxy")
+                        logger.info("  H - Show this help")
+                        logger.info("  Ctrl+C - Force quit")
+                except (EOFError, KeyboardInterrupt):
+                    break
+        except Exception as e:
+            logger.debug(f"Console handler error: {e}")
 
     def setup_routes(self):
         """Setup Flask routes."""
@@ -422,7 +501,7 @@ class GroqClaudeProxy:
             return self.handle_proxy_request(path)
 
     def handle_proxy_request(self, path):
-        """Handle proxy requests with intelligent routing."""
+        """Handle proxy requests with intelligent routing and web search interception."""
         if not self.api_client.authenticate():
             return jsonify({"error": "GROQ_API_KEY not configured"}), 400
 
@@ -461,9 +540,62 @@ class GroqClaudeProxy:
         # Send request to GroqCloud
         groq_response, error = self.api_client.send_request(openai_request)
         if error:
-            return jsonify({"error": error}), 500
+            return jsonify({"error": "Service temporarily unavailable. The AI service is experiencing high demand. Please try again in a moment."}), 503
 
-        # Check for tool calls first
+        # Check for web search tool calls and intercept them
+        if ('choices' in groq_response and groq_response['choices'] and 
+            'tool_calls' in groq_response['choices'][0]['message']):
+            
+            tool_calls = groq_response['choices'][0]['message']['tool_calls']
+            
+            for tool_call in tool_calls:
+                func_name = tool_call['function']['name']
+                
+                # Intercept web search calls
+                if func_name in ['web_search', 'browser_search']:
+                    func_args = json.loads(tool_call['function']['arguments'])
+                    search_query = func_args.get('query', '')
+                    
+                    logger.info(f"[WEB SEARCH INTERCEPT] Switching to {GroqModelSelector.COMPOUND_MODEL} for: {search_query}")
+                    
+                    # Make request to compound model for web search
+                    compound_request = {
+                        "model": GroqModelSelector.COMPOUND_MODEL,
+                        "messages": [{"role": "user", "content": f"Search the web for: {search_query}"}]
+                    }
+                    
+                    compound_response, compound_error = self.api_client.send_request(compound_request)
+                    
+                    if compound_response and 'choices' in compound_response:
+                        search_results = compound_response['choices'][0]['message']['content']
+                        
+                        # Return search results as completed tool_use response
+                        return jsonify({
+                            "id": groq_response.get("id"),
+                            "type": "message",
+                            "content": [{
+                                "type": "text",
+                                "text": f"I performed a web search for '{search_query}'. Here are the results:\n\n{search_results}"
+                            }],
+                            "model": data.get("model", "claude-3-5-sonnet"),
+                            "usage": groq_response.get("usage", {}),
+                            "stop_reason": "end_turn"
+                        })
+                    else:
+                        # Fallback if compound search fails
+                        return jsonify({
+                            "id": groq_response.get("id"),
+                            "type": "message", 
+                            "content": [{
+                                "type": "text",
+                                "text": f"I attempted to search for '{search_query}' but web search is temporarily unavailable. Please try again."
+                            }],
+                            "model": data.get("model", "claude-3-5-sonnet"),
+                            "usage": groq_response.get("usage", {}),
+                            "stop_reason": "end_turn"
+                        })
+
+        # Check for regular tool calls
         anthropic_response = MessageTransformer.groq_to_anthropic_tools(groq_response, data.get("model", "claude-3-5-sonnet"))
         if anthropic_response:
             return jsonify(anthropic_response)
@@ -484,13 +616,13 @@ class GroqClaudeProxy:
             sock.close()
 
             if result == 0:
-                print(f"[WARNING] Another GroqCloud proxy is already running on port {port}!")
-                print(f"[WARNING] Only one GroqCloud proxy can run at a time.")
-                print("[WARNING] Shutting down in 3 seconds...")
+                logger.warning(f"Another GroqCloud proxy is already running on port {port}!")
+                logger.warning("Only one GroqCloud proxy can run at a time.")
+                logger.warning("Shutting down in 3 seconds...")
                 for i in range(3, 0, -1):
-                    print(f"[WARNING] Shutting down in {i}...")
+                    logger.warning(f"Shutting down in {i}...")
                     time.sleep(1)
-                print(f"[ERROR] Exiting - port {port} is already in use")
+                logger.error(f"Exiting - port {port} is already in use")
                 exit(1)
         except Exception:
             pass  # Port is available
@@ -523,12 +655,23 @@ class GroqClaudeProxy:
             print("[TOOLS] All 15+ Claude Code tools supported")
             print("[MODELS] Intelligent routing (gpt-oss-120b <-> groq/compound)")
             print("[COST] 20x cheaper than Anthropic with full functionality")
+            print("[RETRY] Auto-retry with smart backoff for rate limits")
+            print()
+            print("[COMMANDS] Console commands:")
+            print("  R - Restart proxy (reload code changes)")
+            print("  Q - Quit proxy")
+            print("  H - Show help")
+            print("  Ctrl+C - Force quit")
             print()
             print("Test with:")
             print(f'claude --settings "{{\\"env\\": {{\\"ANTHROPIC_BASE_URL\\": \\"http://localhost:{port}\\", \\"ANTHROPIC_API_KEY\\": \\"dummy_key\\"}}}}" -p "What is 2+2?"')
             print()
             print("Press Ctrl+C to stop")
             print("=" * 80)
+
+            # Start console input handler
+            console_thread = threading.Thread(target=self.console_input_handler, daemon=True)
+            console_thread.start()
 
             self.app.run(host='127.0.0.1', port=port, debug=False)
         else:

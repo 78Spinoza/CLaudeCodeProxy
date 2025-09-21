@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-xAI Claude Code Proxy - ENHANCED VERSION v1.0.3 (Clean Architecture)
+xAI Claude Code Proxy - ENHANCED VERSION v1.0.4 (Clean Architecture)
 ==================================================================
 
 Clean, class-based architecture for xAI Claude Code proxy with:
 - Intelligent model selection (grok-code-fast-1 vs grok-4-0709)
-- All 15 Claude Code tools with ultra-simple schemas
+- All 15+ Claude Code tools with ultra-simple schemas
+- Web search interception with native xAI search
 - Complete bidirectional API translation
+- Console restart command (R) for fast debugging
 - 15x cost savings vs Anthropic
 
 Port: 5000 (standard xAI proxy port)
@@ -17,6 +19,8 @@ import os
 import requests
 import time
 import socket
+import threading
+import sys
 from flask import Flask, request, jsonify, Response, stream_with_context
 import winreg
 import logging
@@ -84,10 +88,18 @@ class ClaudeToolMapper:
         "read_file": "Read", "open_file": "Read", "write_file": "Write",
         "edit_file": "Edit", "multi_edit_file": "MultiEdit", "run_bash": "Bash",
         "search_files": "Glob", "grep_search": "Grep", "web_search": "WebSearch",
-        "web_fetch": "WebFetch", "manage_todos": "TodoWrite",
+        "web_fetch": "WebFetch", "manage_todos": "TodoWrite", "todo_write": "TodoWrite",
         "get_bash_output": "BashOutput", "kill_bash_shell": "KillShell",
         "edit_notebook": "NotebookEdit", "delegate_task": "Task",
-        "exit_plan_mode": "ExitPlanMode"
+        "exit_plan_mode": "ExitPlanMode",
+        # Add functions/ prefixed versions for xAI compatibility
+        "functions/read_file": "Read", "functions/open_file": "Read", "functions/write_file": "Write",
+        "functions/edit_file": "Edit", "functions/multi_edit_file": "MultiEdit", "functions/run_bash": "Bash",
+        "functions/search_files": "Glob", "functions/grep_search": "Grep", "functions/web_search": "WebSearch",
+        "functions/web_fetch": "WebFetch", "functions/manage_todos": "TodoWrite", "functions/todo_write": "TodoWrite",
+        "functions/get_bash_output": "BashOutput", "functions/kill_bash_shell": "KillShell",
+        "functions/edit_notebook": "NotebookEdit", "functions/delegate_task": "Task",
+        "functions/exit_plan_mode": "ExitPlanMode"
     }
 
     @classmethod
@@ -102,7 +114,7 @@ class ClaudeToolMapper:
             {"type": "function", "function": {"name": "read_file", "description": "Read contents of a file", "parameters": {"type": "object", "properties": {"file_path": {"type": "string", "description": "Path to the file"}, "limit": {"type": "integer", "description": "Lines to read (optional)"}, "offset": {"type": "integer", "description": "Start line (optional)"}}, "required": ["file_path"]}}},
             {"type": "function", "function": {"name": "open_file", "description": "Open and read contents of a file (alias for read_file)", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "Path to the file"}, "file_path": {"type": "string", "description": "Path to the file (alternative)"}, "limit": {"type": "integer", "description": "Lines to read (optional)"}, "offset": {"type": "integer", "description": "Start line (optional)"}}, "required": []}}},
             {"type": "function", "function": {"name": "write_file", "description": "Write content to a file", "parameters": {"type": "object", "properties": {"file_path": {"type": "string", "description": "Path to the file"}, "content": {"type": "string", "description": "File content"}}, "required": ["file_path", "content"]}}},
-            {"type": "function", "function": {"name": "edit_file", "description": "Edit a file by replacing text", "parameters": {"type": "object", "properties": {"file_path": {"type": "string", "description": "Path to the file"}, "old_string": {"type": "string", "description": "Text to replace"}, "new_string": {"type": "string", "description": "New text"}, "replace_all": {"type": "string", "description": "Replace all occurrences (true/false)"}}, "required": ["file_path", "old_string", "new_string"]}}},
+            {"type": "function", "function": {"name": "edit_file", "description": "Edit a file by replacing text", "parameters": {"type": "object", "properties": {"file_path": {"type": "string", "description": "Path to the file"}, "old_string": {"type": "string", "description": "Text to replace"}, "new_string": {"type": "string", "description": "New text"}, "replace_all": {"type": "boolean", "description": "Replace all occurrences"}}, "required": ["file_path", "old_string", "new_string"]}}},
             {"type": "function", "function": {"name": "multi_edit_file", "description": "Make multiple edits to one file", "parameters": {"type": "object", "properties": {"file_path": {"type": "string", "description": "Path to the file"}, "edits": {"type": "string", "description": "JSON string containing array of edit operations"}}, "required": ["file_path", "edits"]}}},
             {"type": "function", "function": {"name": "run_bash", "description": "Run a shell command", "parameters": {"type": "object", "properties": {"command": {"type": "string", "description": "Command to run"}, "timeout": {"type": "integer", "description": "Timeout in ms"}, "run_in_background": {"type": "boolean", "description": "Run in background"}}, "required": ["command"]}}},
             {"type": "function", "function": {"name": "search_files", "description": "Search for files using glob patterns", "parameters": {"type": "object", "properties": {"pattern": {"type": "string", "description": "Glob pattern like *.py"}, "path": {"type": "string", "description": "Directory to search"}}, "required": ["pattern"]}}},
@@ -110,6 +122,7 @@ class ClaudeToolMapper:
             {"type": "function", "function": {"name": "web_search", "description": "Search the web for information", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "Search query"}}, "required": ["query"]}}},
             {"type": "function", "function": {"name": "web_fetch", "description": "Fetch content from a URL", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "URL to fetch"}, "prompt": {"type": "string", "description": "What to extract from content"}}, "required": ["url", "prompt"]}}},
             {"type": "function", "function": {"name": "manage_todos", "description": "Manage todo list", "parameters": {"type": "object", "properties": {"todos": {"type": "array", "items": {"type": "object", "properties": {"content": {"type": "string"}, "status": {"type": "string"}, "activeForm": {"type": "string"}}, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}}, "required": ["todos"]}}},
+            {"type": "function", "function": {"name": "todo_write", "description": "Write todo items", "parameters": {"type": "object", "properties": {"todos": {"type": "array", "items": {"type": "object", "properties": {"content": {"type": "string"}, "status": {"type": "string"}, "activeForm": {"type": "string"}}, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}}, "required": ["todos"]}}},
             {"type": "function", "function": {"name": "get_bash_output", "description": "Get output from background bash process", "parameters": {"type": "object", "properties": {"bash_id": {"type": "string", "description": "Background process ID"}}, "required": ["bash_id"]}}},
             {"type": "function", "function": {"name": "kill_bash_shell", "description": "Kill a background bash process", "parameters": {"type": "object", "properties": {"shell_id": {"type": "string", "description": "Shell process ID to kill"}}, "required": ["shell_id"]}}},
             {"type": "function", "function": {"name": "edit_notebook", "description": "Edit a Jupyter notebook cell", "parameters": {"type": "object", "properties": {"notebook_path": {"type": "string", "description": "Path to notebook"}, "new_source": {"type": "string", "description": "New cell content"}, "cell_type": {"type": "string", "description": "Cell type: code or markdown"}}, "required": ["notebook_path", "new_source"]}}},
@@ -205,7 +218,7 @@ class MessageTransformer:
         return transformed_messages
 
     @staticmethod
-    def transform_xai_to_anthropic(xai_response, original_model, tool_mapping):
+    def transform_xai_to_anthropic(xai_response, original_model, tool_mapping, api_client=None):
         """Transform xAI response back to Anthropic format."""
         if 'choices' not in xai_response or not xai_response['choices']:
             return {"error": "Invalid xAI response"}
@@ -215,6 +228,56 @@ class MessageTransformer:
         # Handle tool calls
         if 'tool_calls' in message:
             print("[SUCCESS] xAI model called tools - translating to Anthropic format!")
+            
+            # Check for web search tool calls that need interception
+            for tool_call in message['tool_calls']:
+                func_name = tool_call['function']['name']
+                
+                # Handle xAI's "functions/" prefix
+                if func_name.startswith("functions/"):
+                    func_name = func_name[10:]  # Remove "functions/" prefix
+                
+                func_args = json.loads(tool_call['function']['arguments'])
+                
+                # INTERCEPT WEB SEARCH TOOLS
+                if func_name in ["web_search"] and api_client:
+                    query = func_args.get("query", "")
+                    print(f"[WEB SEARCH INTERCEPT] Intercepting {func_name} with query: {query}")
+                    
+                    # Make a new call to xAI for actual web search (using a model that supports search)
+                    search_request = {
+                        "model": "grok-4-0709",  # Use reasoning model for web search
+                        "messages": [{"role": "user", "content": f"Please search the web for information about: {query}. Provide detailed results with sources and URLs when possible."}],
+                        "max_tokens": 4000
+                    }
+                    
+                    print(f"[WEB SEARCH] Making xAI call for web search...")
+                    search_response = api_client.send_request(search_request)
+                    
+                    if isinstance(search_response, Response):  # Streaming response
+                        search_result = "Web search completed via streaming response"
+                    elif search_response.status_code == 200:
+                        search_data = search_response.json()
+                        search_result = search_data['choices'][0]['message']['content']
+                    else:
+                        search_result = f"Web search failed: {search_response.text}"
+                    
+                    print(f"[WEB SEARCH] Got search results, returning as completed search")
+                    
+                    # Return as a regular text response with search results
+                    return {
+                        "id": xai_response.get("id"),
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": f"I searched the web for '{query}' and found the following information:\n\n{search_result}"}],
+                        "model": original_model,
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "input_tokens": xai_response.get("usage", {}).get("prompt_tokens", 0),
+                            "output_tokens": xai_response.get("usage", {}).get("completion_tokens", 0)
+                        }
+                    }
+
             content = []
 
             # Add any text content first
@@ -224,6 +287,11 @@ class MessageTransformer:
             # Translate tool_calls to Anthropic tool_use blocks
             for tool_call in message['tool_calls']:
                 func_name = tool_call['function']['name']
+                
+                # Handle xAI's "functions/" prefix
+                if func_name.startswith("functions/"):
+                    func_name = func_name[10:]  # Remove "functions/" prefix
+                
                 func_args = json.loads(tool_call['function']['arguments'])
                 claude_tool_name = tool_mapping.get(func_name, func_name)
 
@@ -272,6 +340,35 @@ class XAIClaudeProxy:
         self.model_selector = XAIModelSelector()
         self.tool_mapper = ClaudeToolMapper()
         self.message_transformer = MessageTransformer()
+        self.running = True
+
+    def console_input_handler(self):
+        """Handle console input commands in a separate thread."""
+        try:
+            while self.running:
+                try:
+                    user_input = input().strip().upper()
+                    if user_input == 'R':
+                        print("\n[RESTART] Restarting xAI proxy with updated code...")
+                        print("[INFO] Current instance will shutdown, new instance will start")
+                        print("=" * 60)
+                        # Kill current process and restart with same arguments
+                        os.execv(sys.executable, ['python'] + sys.argv)
+                    elif user_input == 'Q' or user_input == 'QUIT':
+                        print("\n[SHUTDOWN] Shutting down xAI proxy...")
+                        self.running = False
+                        os._exit(0)
+                    elif user_input == 'H' or user_input == 'HELP':
+                        print("\n[COMMANDS] Available commands:")
+                        print("  R - Restart proxy (reload code changes)")
+                        print("  Q - Quit proxy")
+                        print("  H - Show this help")
+                        print("  Ctrl+C - Force quit\n")
+                except (EOFError, KeyboardInterrupt):
+                    break
+        except Exception as e:
+            # Silently handle any input errors
+            pass
 
     def initialize(self):
         """Initialize the proxy with API key and connection test."""
@@ -308,7 +405,8 @@ class XAIClaudeProxy:
 
         # Add tools if present
         if "tools" in data:
-            xai_request["tools"] = self.tool_mapper.generate_tool_schemas()
+            tools = self.tool_mapper.generate_tool_schemas()
+            xai_request["tools"] = tools
             xai_request["tool_choice"] = "auto"
 
         try:
@@ -321,7 +419,7 @@ class XAIClaudeProxy:
             if response.status_code == 200:
                 xai_response = response.json()
                 anthropic_response = self.message_transformer.transform_xai_to_anthropic(
-                    xai_response, original_model, self.tool_mapper.TOOL_MAPPING
+                    xai_response, original_model, self.tool_mapper.TOOL_MAPPING, self.api_client
                 )
                 return jsonify(anthropic_response)
             else:
@@ -367,7 +465,7 @@ if __name__ == "__main__":
     check_port_conflict(5000, "xAI")
 
     print("================================================================================")
-    print("              xAI Claude Code Proxy - ENHANCED VERSION v1.0.3")
+    print("              xAI Claude Code Proxy - ENHANCED VERSION v1.0.4")
     print("================================================================================")
     print("[SUCCESS] Clean class-based architecture with intelligent model selection!")
     print("Models: grok-code-fast-1 (coding) + grok-4-0709 (reasoning)")
