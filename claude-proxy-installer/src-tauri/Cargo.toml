@@ -1,6 +1,6 @@
 [package]
 name = "claude-proxy-installer"
-version = "1.0.0"
+version = "1.0.4"
 description = "Smart installer for Claude Code Proxy"
 authors = ["Claude Code Proxy Team"]
 license = "MIT"
