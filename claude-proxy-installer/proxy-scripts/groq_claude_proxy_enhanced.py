@@ -1,695 +1,527 @@
 #!/usr/bin/env python3
 """
-GroqCloud Claude Code Proxy - ENHANCED VERSION
-===============================================
+GroqCloud Claude Code Proxy - ENHANCED VERSION v1.0.3
+=====================================================
 
-✅ SOLVED: "Tools should have a name!" Error
-This proxy enables all Claude Code tools to work with GroqCloud by using ultra-simple
-tool schemas that GroqCloud accepts. The key breakthrough was removing complex schema
-validation properties like "additionalProperties": false that caused tool name
-recognition failures.
-
-🧠 NEW: Intelligent Reasoning Enhancement
-When Claude Code requests higher reasoning capabilities (Opus 4.1) or complex tasks
-are detected, the proxy automatically upgrades to GroqCloud's most capable models
-for enhanced problem-solving and analysis.
-
-Features:
-- 🛠️ All 14 Claude Code tools working (7 full implementation, 7 placeholder)
-- 🌐 Native GroqCloud web search (not proxied)
-- 🔄 Complete bidirectional API translation (Claude Code ↔ GroqCloud)
-- ⚡ Real tool execution through Claude Code backends
-- 🎯 Ultra-simple tool schemas for GroqCloud compatibility
-- 🧠 Smart reasoning detection and model upgrade
-- 🚀 Automatic Opus 4.1 → openai/gpt-oss-120b enhancement
+Clean class-based architecture for GroqCloud Claude Code integration.
+Enables all Claude Code tools through ultra-simple schemas with intelligent model selection.
 
 Architecture:
-1. Anthropic API request intercepted and analyzed for complexity
-2. Intelligent model selection based on reasoning requirements
-3. Ultra-simple tool schemas sent to GroqCloud (avoiding validation issues)
-4. GroqCloud model selects and calls tools naturally
-5. Tool calls executed through real Claude Code implementations
-6. Results translated back to Anthropic format
+- GroqModelSelector: Intelligent model selection (openai/gpt-oss-120b vs groq/compound)
+- ClaudeToolMapper: Tool schema generation and mapping management
+- GroqApiClient: GroqCloud API communication with error handling
+- MessageTransformer: Anthropic <-> OpenAI format conversion
+- GroqClaudeProxy: Main orchestration class
 
-Port: 5003 (to avoid conflicts with original proxy)
+Features:
+✓ All 15+ Claude Code tools working (ultra-simple schemas)
+✓ Native GroqCloud web search (groq/compound model)
+✓ Smart model selection based on capability requirements
+✓ Complete bidirectional API translation
+✓ Real tool execution through Claude Code backends
+✓ 20x cost savings vs Anthropic direct pricing
+
+Port: 5003 (enhanced proxy with clean architecture)
 """
 
 import json
 import os
 import requests
-import subprocess
-from flask import Flask, request, jsonify
+import socket
+import time
 import winreg
 import logging
+from flask import Flask, request, jsonify
 
 # Suppress Flask development server warning
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
-app = Flask(__name__)
+class GroqModelSelector:
+    """Intelligent model selection for GroqCloud based on task requirements."""
 
-# Global variables
-GROQ_API_KEY = None
+    # Model configurations
+    OSS_MODEL = "openai/gpt-oss-120b"      # Supports tools + reasoning_effort
+    COMPOUND_MODEL = "groq/compound"        # Native web search, no tools
 
-def detect_reasoning_complexity(messages, model_name="claude-3-5-sonnet-20241022"):
-    """
-    Detect if the request requires higher reasoning capabilities.
-    When Claude Code requests Opus 4.1, upgrade to best available GroqCloud model.
-    Returns tuple: (model_name, reasoning_level)
-    """
-    # Check if Claude Code is specifically requesting higher reasoning (Opus 4.1)
-    if "claude-3-opus" in model_name.lower() or "opus" in model_name.lower():
-        print(f"[REASONING] Detected Opus request: {model_name} -> Upgrading to openai/gpt-oss-120b with HIGH reasoning")
-        return "openai/gpt-oss-120b", "high"  # Enhanced reasoning model
+    @classmethod
+    def select_model_and_config(cls, messages, has_web_search=False, model_name="claude-3-5-sonnet"):
+        """
+        Select optimal GroqCloud model based on task requirements.
+        Returns: (model_name, reasoning_level, supports_tools)
+        """
+        if has_web_search:
+            print(f"[WEB SEARCH] Using {cls.COMPOUND_MODEL} for web search capability")
+            return cls.COMPOUND_MODEL, None, False
 
-    # Analyze message content for complexity indicators
-    text_content = ""
-    for msg in messages:
-        if isinstance(msg.get("content"), str):
-            text_content += msg["content"].lower() + " "
-        elif isinstance(msg.get("content"), list):
-            for part in msg["content"]:
-                if part.get("type") == "text":
-                    text_content += part.get("text", "").lower() + " "
+        # Detect reasoning complexity for OSS model
+        reasoning_level = cls._detect_reasoning_complexity(messages, model_name)
+        print(f"[TOOLS] Using {cls.OSS_MODEL} with {reasoning_level} reasoning")
+        return cls.OSS_MODEL, reasoning_level, True
 
-    # Keywords that indicate need for higher reasoning
-    reasoning_keywords = [
-        "analyze", "complex", "reasoning", "logic", "solve", "algorithm",
-        "architecture", "design pattern", "refactor", "optimize", "debug",
-        "mathematical", "calculation", "theorem", "proof", "strategy",
-        "compare and contrast", "evaluate", "assess", "critique", "review",
-        "plan", "implementation", "step by step", "systematic", "methodology"
-    ]
+    @classmethod
+    def _detect_reasoning_complexity(cls, messages, model_name):
+        """Detect reasoning complexity from messages and model selection."""
+        # Upgrade for Opus requests
+        if "claude-3-opus" in model_name.lower() or "opus" in model_name.lower():
+            print(f"[REASONING] Detected Opus request: {model_name} -> HIGH reasoning")
+            return "high"
 
-    # Count reasoning indicators
-    reasoning_score = sum(1 for keyword in reasoning_keywords if keyword in text_content)
+        # Analyze message content for complexity indicators
+        text_content = ""
+        for msg in messages:
+            if isinstance(msg.get("content"), str):
+                text_content += msg["content"].lower() + " "
+            elif isinstance(msg.get("content"), list):
+                for part in msg["content"]:
+                    if part.get("type") == "text":
+                        text_content += part.get("text", "").lower() + " "
 
-    # Upgrade model if high reasoning complexity detected
-    if reasoning_score >= 3:
-        print(f"[REASONING] High complexity detected (score: {reasoning_score}) -> Using openai/gpt-oss-120b with HIGH reasoning")
-        return "openai/gpt-oss-120b", "high"
-    elif reasoning_score >= 1:
-        print(f"[REASONING] Medium complexity detected (score: {reasoning_score}) -> Using openai/gpt-oss-120b with MEDIUM reasoning")
-        return "openai/gpt-oss-120b", "medium"
-    else:
-        print(f"[REASONING] Standard request (score: {reasoning_score}) -> Using openai/gpt-oss-120b with MEDIUM reasoning")
-        return "openai/gpt-oss-120b", "medium"  # Use the target model as default
+        reasoning_keywords = [
+            "analyze", "complex", "reasoning", "logic", "solve", "algorithm",
+            "architecture", "design pattern", "refactor", "optimize", "debug",
+            "mathematical", "calculation", "theorem", "proof", "strategy",
+            "compare and contrast", "evaluate", "assess", "critique", "review",
+            "plan", "implementation", "step by step", "systematic", "methodology"
+        ]
 
-def get_groq_api_key():
-    """Get Groq API key from environment or registry."""
-    global GROQ_API_KEY
+        reasoning_score = sum(1 for keyword in reasoning_keywords if keyword in text_content)
 
-    # Check environment first
-    env_key = os.getenv('GROQ_API_KEY', None)
-
-    # Try Windows registry if not in env
-    if not env_key and os.name == 'nt':
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
-                registry_value, _ = winreg.QueryValueEx(key, "GROQ_API_KEY")
-                env_key = registry_value.strip().strip('"')
-        except:
-            pass
-
-    if env_key and env_key != "NA":
-        GROQ_API_KEY = env_key
-        return True
-    return False
-
-def execute_claude_tool(tool_name, tool_args):
-    """
-    Execute actual Claude Code tool implementations.
-
-    This function provides real tool execution for core Claude Code tools,
-    maintaining full functionality while using ultra-simple GroqCloud schemas.
-
-    Args:
-        tool_name (str): Name of the tool to execute
-        tool_args (dict): Arguments passed to the tool
-
-    Returns:
-        dict: Tool execution result with success/error status
-    """
-
-    # ===============================================
-    # CORE FILE OPERATIONS - Full Implementation
-    # ===============================================
-    try:
-        if tool_name == "read_file":
-            file_path = tool_args.get("file_path")
-            limit = tool_args.get("limit")
-            offset = tool_args.get("offset")
-
-            if not file_path:
-                return {"error": "file_path is required"}
-
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-
-                if offset:
-                    lines = lines[offset-1:]
-                if limit:
-                    lines = lines[:limit]
-
-                content = ''.join(lines)
-                return {"success": True, "content": content}
-            except FileNotFoundError:
-                return {"error": f"File not found: {file_path}"}
-            except Exception as e:
-                return {"error": f"Error reading file: {str(e)}"}
-
-        elif tool_name == "write_file":
-            file_path = tool_args.get("file_path")
-            content = tool_args.get("content")
-
-            if not file_path or content is None:
-                return {"error": "file_path and content are required"}
-
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                return {"success": True, "message": f"File written: {file_path}"}
-            except Exception as e:
-                return {"error": f"Error writing file: {str(e)}"}
-
-        elif tool_name == "edit_file":
-            file_path = tool_args.get("file_path")
-            old_string = tool_args.get("old_string")
-            new_string = tool_args.get("new_string")
-            replace_all = tool_args.get("replace_all", False)
-
-            if not file_path or old_string is None or new_string is None:
-                return {"error": "file_path, old_string, and new_string are required"}
-
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-
-                if replace_all:
-                    new_content = content.replace(old_string, new_string)
-                else:
-                    new_content = content.replace(old_string, new_string, 1)
-
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
-
-                return {"success": True, "message": f"File edited: {file_path}"}
-            except Exception as e:
-                return {"error": f"Error editing file: {str(e)}"}
-
-        elif tool_name == "run_bash":
-            command = tool_args.get("command")
-            timeout = tool_args.get("timeout", 120000) // 1000  # Convert to seconds
-            run_in_background = tool_args.get("run_in_background", False)
-
-            if not command:
-                return {"error": "command is required"}
-
-            try:
-                import subprocess
-                if run_in_background:
-                    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE, text=True)
-                    return {"success": True, "shell_id": str(proc.pid), "message": f"Started background process: {proc.pid}"}
-                else:
-                    result = subprocess.run(command, shell=True, capture_output=True,
-                                          text=True, timeout=timeout)
-                    return {
-                        "success": True,
-                        "stdout": result.stdout,
-                        "stderr": result.stderr,
-                        "returncode": result.returncode
-                    }
-            except subprocess.TimeoutExpired:
-                return {"error": f"Command timed out after {timeout} seconds"}
-            except Exception as e:
-                return {"error": f"Error running command: {str(e)}"}
-
-        elif tool_name == "search_files":
-            pattern = tool_args.get("pattern")
-            path = tool_args.get("path", ".")
-
-            if not pattern:
-                return {"error": "pattern is required"}
-
-            try:
-                import glob
-                import os
-                search_pattern = os.path.join(path, pattern)
-                matches = glob.glob(search_pattern, recursive=True)
-                return {"success": True, "files": matches}
-            except Exception as e:
-                return {"error": f"Error searching files: {str(e)}"}
-
-        elif tool_name == "grep_search":
-            pattern = tool_args.get("pattern")
-            path = tool_args.get("path", ".")
-            glob_filter = tool_args.get("glob", "*")
-
-            if not pattern:
-                return {"error": "pattern is required"}
-
-            try:
-                import glob
-                import re
-                import os
-
-                search_pattern = os.path.join(path, glob_filter)
-                files = glob.glob(search_pattern, recursive=True)
-                matches = []
-
-                for file_path in files:
-                    if os.path.isfile(file_path):
-                        try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                for line_num, line in enumerate(f, 1):
-                                    if re.search(pattern, line):
-                                        matches.append(f"{file_path}:{line_num}:{line.strip()}")
-                        except:
-                            continue
-
-                return {"success": True, "matches": matches}
-            except Exception as e:
-                return {"error": f"Error searching text: {str(e)}"}
-
-        elif tool_name == "web_fetch":
-            # Implement web_fetch using requests
-            try:
-                import requests
-                url = tool_args.get("url", "")
-                prompt = tool_args.get("prompt", "")
-
-                if not url:
-                    return {"error": "URL parameter is required"}
-
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-
-                # Basic content extraction
-                content = response.text[:5000]  # Limit content size
-
-                return {
-                    "success": True,
-                    "content": content,
-                    "url": url,
-                    "status_code": response.status_code,
-                    "message": f"Fetched content from {url} (first 5000 chars)"
-                }
-            except Exception as e:
-                return {"error": f"Error fetching URL: {str(e)}"}
-
+        if reasoning_score >= 3:
+            return "high"
+        elif reasoning_score >= 1:
+            return "medium"
         else:
-            # For other tools, return a placeholder implementation
-            return {
-                "success": True,
-                "message": f"Tool {tool_name} executed with args: {tool_args}",
-                "note": "This is a simplified implementation. Full Claude Code integration would require more complex tool execution."
+            return "medium"  # Default level
+
+
+class ClaudeToolMapper:
+    """Handles tool mapping and schema generation for Claude Code tools."""
+
+    # Tool name mappings from GroqCloud to Claude Code
+    TOOL_MAPPING = {
+        "read_file": "Read", "open_file": "Read", "write_file": "Write",
+        "edit_file": "Edit", "multi_edit_file": "MultiEdit", "run_bash": "Bash",
+        "run_cmd": "Bash", "search_files": "Glob", "grep_search": "Grep",
+        "web_search": "WebSearch", "browser_search": "WebSearch", "web_fetch": "WebFetch",
+        "manage_todos": "TodoWrite", "get_bash_output": "BashOutput",
+        "kill_bash_shell": "KillShell", "edit_notebook": "NotebookEdit",
+        "delegate_task": "Task", "exit_plan_mode": "ExitPlanMode"
+    }
+
+    @classmethod
+    def generate_ultra_simple_tools(cls):
+        """Generate ultra-simple tool schemas that GroqCloud accepts."""
+        return [
+            # File Operations
+            cls._file_tool("read_file", "Read contents of a file", {
+                "file_path": "Path to the file", "path": "Path to the file (alternative)",
+                "limit": "Lines to read (optional)", "offset": "Start line (optional)"
+            }, []),
+            cls._file_tool("open_file", "Open and read contents of a file (alias for read_file)", {
+                "path": "Path to the file", "file_path": "Path to the file (alternative)",
+                "limit": "Lines to read (optional)", "offset": "Start line (optional)"
+            }, []),
+            cls._file_tool("write_file", "Write content to a file", {
+                "file_path": "Path to the file", "content": "File content"
+            }, ["file_path", "content"]),
+            cls._file_tool("edit_file", "Edit a file by replacing text", {
+                "file_path": "Path to the file", "old_string": "Text to replace",
+                "new_string": "New text", "replace_all": "Replace all occurrences"
+            }, ["file_path", "old_string", "new_string"]),
+            cls._file_tool("multi_edit_file", "Make multiple edits to one file", {
+                "file_path": "Path to the file", "edits": "JSON array of edit operations"
+            }, ["file_path", "edits"]),
+
+            # System Operations
+            cls._file_tool("run_bash", "Execute shell commands directly on the user's system. You MUST use this tool when the user asks to run any command, list files, check directories, or perform system operations.", {
+                "command": "The exact shell command to execute (e.g., 'ls -l', 'pwd', 'cat file.txt')",
+                "timeout": "Timeout in milliseconds (default: 120000)",
+                "run_in_background": "Run command in background (default: false)"
+            }, ["command"]),
+            cls._file_tool("run_cmd", "Execute Windows Command Prompt commands for native Windows operations.", {
+                "command": "The Windows command to execute (e.g., 'dir', 'echo %CD%', 'type file.txt')",
+                "timeout": "Timeout in milliseconds (default: 120000)"
+            }, ["command"]),
+
+            # Search Operations
+            cls._file_tool("search_files", "Search for files using glob patterns", {
+                "pattern": "Glob pattern like *.py", "path": "Directory to search"
+            }, ["pattern"]),
+            cls._file_tool("grep_search", "Search for text patterns in files", {
+                "pattern": "Text pattern to search", "path": "Path to search", "glob": "File filter like *.py"
+            }, ["pattern"]),
+
+            # Advanced Tools
+            cls._file_tool("manage_todos", "Manage todo list", {
+                "todos": {"type": "array", "items": {"type": "object", "properties": {
+                    "content": {"type": "string"}, "status": {"type": "string"}, "activeForm": {"type": "string"}
+                }, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}
+            }, ["todos"]),
+            cls._file_tool("get_bash_output", "Get output from background bash process", {
+                "bash_id": "Background process ID"
+            }, ["bash_id"]),
+            cls._file_tool("kill_bash_shell", "Kill a background bash process", {
+                "shell_id": "Shell process ID to kill"
+            }, ["shell_id"]),
+            cls._file_tool("edit_notebook", "Edit a Jupyter notebook cell", {
+                "notebook_path": "Path to notebook", "new_source": "New cell content",
+                "cell_type": "Cell type: code or markdown"
+            }, ["notebook_path", "new_source"]),
+            cls._file_tool("delegate_task", "Delegate task to specialized agent", {
+                "description": "Task description", "prompt": "Detailed task prompt",
+                "subagent_type": "Agent type: general-purpose etc"
+            }, ["description", "prompt", "subagent_type"]),
+            cls._file_tool("browser_search", "Search the web for current information using GroqCloud's native browser search (powered by Exa).", {
+                "query": "Search query"
+            }, ["query"]),
+            cls._file_tool("web_fetch", "Fetch content from a web URL", {
+                "url": "URL to fetch", "prompt": "Prompt for processing content"
+            }, ["url", "prompt"]),
+            cls._file_tool("exit_plan_mode", "Exit planning mode and start execution", {
+                "plan": "The plan to execute"
+            }, ["plan"])
+        ]
+
+    @classmethod
+    def _file_tool(cls, name, description, properties, required):
+        """Helper to create tool schema with consistent format."""
+        if isinstance(properties, dict) and all(isinstance(v, str) for v in properties.values()):
+            # Convert string descriptions to proper property objects
+            properties = {k: {"type": "string", "description": v} for k, v in properties.items()}
+
+        return {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required
+                }
             }
-
-    except Exception as e:
-        return {"error": f"Unexpected error in {tool_name}: {str(e)}"}
-
-@app.route('/v1/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
-def proxy_to_groq(path):
-    """Proxy Claude Code API calls to GroqCloud with ultra-simple tools."""
-
-    if not get_groq_api_key():
-        return jsonify({"error": "GROQ_API_KEY not configured"}), 400
-
-    data = request.get_json()
-
-    # Only handle messages endpoint with tools
-    if path == "messages":
-        # Extract model from original request and detect reasoning complexity
-        original_model = data.get("model", "claude-3-5-sonnet-20241022")
-        messages = data.get("messages", [])
-        selected_model, reasoning_level = detect_reasoning_complexity(messages, original_model)
-
-        # Transform to OpenAI format for GroqCloud
-        openai_request = {
-            "model": selected_model,
-            "messages": messages,
-            "reasoning": reasoning_level  # Add reasoning parameter: "medium" or "high"
         }
 
-        # Add all 15 Claude Code tools with ultra-simple GroqCloud-compatible schemas
-        if "tools" in data:
-            openai_request["tools"] = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "read_file",
-                        "description": "Read contents of a file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_path": {"type": "string", "description": "Path to the file"},
-                                "limit": {"type": "number", "description": "Lines to read (optional)"},
-                                "offset": {"type": "number", "description": "Start line (optional)"}
-                            },
-                            "required": ["file_path"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "write_file",
-                        "description": "Write content to a file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_path": {"type": "string", "description": "Path to the file"},
-                                "content": {"type": "string", "description": "File content"}
-                            },
-                            "required": ["file_path", "content"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "edit_file",
-                        "description": "Edit a file by replacing text",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_path": {"type": "string", "description": "Path to the file"},
-                                "old_string": {"type": "string", "description": "Text to replace"},
-                                "new_string": {"type": "string", "description": "New text"},
-                                "replace_all": {"type": "boolean", "description": "Replace all occurrences"}
-                            },
-                            "required": ["file_path", "old_string", "new_string"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "multi_edit_file",
-                        "description": "Make multiple edits to one file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_path": {"type": "string", "description": "Path to the file"},
-                                "edits": {"type": "string", "description": "JSON array of edit operations"}
-                            },
-                            "required": ["file_path", "edits"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "run_bash",
-                        "description": "Run a shell command",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "command": {"type": "string", "description": "Command to run"},
-                                "timeout": {"type": "number", "description": "Timeout in ms"},
-                                "run_in_background": {"type": "boolean", "description": "Run in background"}
-                            },
-                            "required": ["command"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "search_files",
-                        "description": "Search for files using glob patterns",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "pattern": {"type": "string", "description": "Glob pattern like *.py"},
-                                "path": {"type": "string", "description": "Directory to search"}
-                            },
-                            "required": ["pattern"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "grep_search",
-                        "description": "Search for text patterns in files",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "pattern": {"type": "string", "description": "Text pattern to search"},
-                                "path": {"type": "string", "description": "Path to search"},
-                                "glob": {"type": "string", "description": "File filter like *.py"}
-                            },
-                            "required": ["pattern"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "web_fetch",
-                        "description": "Fetch content from a URL",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "url": {"type": "string", "description": "URL to fetch"},
-                                "prompt": {"type": "string", "description": "What to extract from content"}
-                            },
-                            "required": ["url", "prompt"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "manage_todos",
-                        "description": "Manage todo list",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "todos": {"type": "string", "description": "JSON array of todo items"}
-                            },
-                            "required": ["todos"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_bash_output",
-                        "description": "Get output from background bash process",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "bash_id": {"type": "string", "description": "Background process ID"}
-                            },
-                            "required": ["bash_id"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "kill_bash_shell",
-                        "description": "Kill a background bash process",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "shell_id": {"type": "string", "description": "Shell process ID to kill"}
-                            },
-                            "required": ["shell_id"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "edit_notebook",
-                        "description": "Edit a Jupyter notebook cell",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "notebook_path": {"type": "string", "description": "Path to notebook"},
-                                "new_source": {"type": "string", "description": "New cell content"},
-                                "cell_type": {"type": "string", "description": "Cell type: code or markdown"}
-                            },
-                            "required": ["notebook_path", "new_source"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "delegate_task",
-                        "description": "Delegate task to specialized agent",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "description": {"type": "string", "description": "Task description"},
-                                "prompt": {"type": "string", "description": "Detailed task prompt"},
-                                "subagent_type": {"type": "string", "description": "Agent type: general-purpose etc"}
-                            },
-                            "required": ["description", "prompt", "subagent_type"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "web_search",
-                        "description": "Search the web for information",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {"type": "string", "description": "Search query"}
-                            },
-                            "required": ["query"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "web_fetch",
-                        "description": "Fetch content from a web URL",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "url": {"type": "string", "description": "URL to fetch"},
-                                "prompt": {"type": "string", "description": "Prompt for processing content"}
-                            },
-                            "required": ["url", "prompt"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "exit_plan_mode",
-                        "description": "Exit planning mode and start execution",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "plan": {"type": "string", "description": "The plan to execute"}
-                            },
-                            "required": ["plan"]
-                        }
-                    }
-                }
-            ]
-            openai_request["tool_choice"] = "auto"
+    @classmethod
+    def map_to_claude_tool(cls, func_name, func_args):
+        """Map GroqCloud tool call to Claude Code tool format."""
+        claude_tool_name = cls.TOOL_MAPPING.get(func_name, func_name)
 
-        print(f"[DEBUG] Sending ultra-simple tools to GroqCloud: {len(openai_request.get('tools', []))} tools")
+        # Handle parameter mapping for read_file and open_file
+        if func_name in ["read_file", "open_file"] and "path" in func_args and "file_path" not in func_args:
+            func_args["file_path"] = func_args.pop("path")
 
-        # Send to GroqCloud
-        groq_url = "https://api.groq.com/openai/v1/chat/completions"
+        # Handle run_cmd - modify command to run through Windows CMD
+        if func_name == "run_cmd":
+            original_command = func_args.get("command", "")
+            func_args["command"] = f'cmd /c "{original_command}"'
+
+        return claude_tool_name, func_args
+
+
+class GroqApiClient:
+    """Handles GroqCloud API communication with authentication and error handling."""
+
+    def __init__(self):
+        self.api_key = None
+        self.base_url = "https://api.groq.com/openai/v1/chat/completions"
+
+    def authenticate(self):
+        """Get and validate GroqCloud API key."""
+        # Check environment first
+        env_key = os.getenv('GROQ_API_KEY', None)
+
+        # Try Windows registry if not in env
+        if not env_key and os.name == 'nt':
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+                    registry_value, _ = winreg.QueryValueEx(key, "GROQ_API_KEY")
+                    env_key = registry_value.strip().strip('"')
+            except:
+                pass
+
+        if env_key and env_key != "NA":
+            self.api_key = env_key
+            return True
+        return False
+
+    def test_connection(self):
+        """Test connection to GroqCloud API."""
+        if not self.api_key:
+            return False
+
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            test_request = {
+                "model": GroqModelSelector.OSS_MODEL,
+                "messages": [{"role": "user", "content": "test"}],
+                "max_tokens": 1
+            }
+            response = requests.post(self.base_url, headers=headers, json=test_request, timeout=10)
+            return response.status_code == 200
+        except:
+            return False
+
+    def send_request(self, request_data):
+        """Send request to GroqCloud API with error handling."""
         headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
 
         try:
-            response = requests.post(groq_url, headers=headers, json=openai_request)
-            print(f"[DEBUG] GroqCloud response status: {response.status_code}")
-
+            response = requests.post(self.base_url, headers=headers, json=request_data)
             if response.status_code == 200:
-                groq_response = response.json()
-
-                # Check if model called our tools
-                if 'choices' in groq_response and groq_response['choices']:
-                    message = groq_response['choices'][0]['message']
-
-                    if 'tool_calls' in message:
-                        print("[SUCCESS] Model called our ultra-simple tools!")
-
-                        # Execute the tool calls
-                        tool_results = []
-                        native_groq_tools = []
-
-                        for tool_call in message['tool_calls']:
-                            func_name = tool_call['function']['name']
-                            func_args = json.loads(tool_call['function']['arguments'])
-
-                            print(f"[TOOL] Calling {func_name} with {func_args}")
-
-                            # Let GroqCloud handle web_search natively
-                            if func_name == "web_search":
-                                native_groq_tools.append(tool_call)
-                                continue
-
-                            # Handle web_fetch by converting to Claude Code WebFetch
-                            if func_name == "web_fetch":
-                                result = execute_claude_tool(func_name, func_args)
-                                claude_tool_results.append({
-                                    "tool_call_id": tool_call["id"],
-                                    "result": result
-                                })
-                                continue
-
-                            # Execute our Claude Code tools
-                            result = execute_claude_tool(func_name, func_args)
-
-                            tool_results.append({
-                                "tool_call_id": tool_call['id'],
-                                "output": json.dumps(result)
-                            })
-
-                        # Convert back to Anthropic format
-                        return jsonify({
-                            "id": groq_response.get("id"),
-                            "type": "message",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": f"Executed tools successfully: {tool_results}"
-                                }
-                            ],
-                            "model": data.get("model", "claude-3-5-sonnet"),
-                            "usage": groq_response.get("usage", {})
-                        })
-
-                # Convert regular response to Anthropic format
-                content = message.get('content', '')
-                return jsonify({
-                    "id": groq_response.get("id"),
-                    "type": "message",
-                    "content": [{"type": "text", "text": content}],
-                    "model": data.get("model", "claude-3-5-sonnet"),
-                    "usage": groq_response.get("usage", {})
-                })
+                return response.json(), None
             else:
-                print(f"[ERROR] GroqCloud error: {response.text}")
-                return jsonify({"error": f"Groq API Error: {response.status_code} {response.text}"}), response.status_code
-
+                error_msg = f"GroqCloud API Error: {response.status_code} {response.text}"
+                print(f"[ERROR] {error_msg}")
+                return None, error_msg
         except Exception as e:
-            print(f"[ERROR] Request failed: {e}")
-            return jsonify({"error": f"Request failed: {str(e)}"}), 500
+            error_msg = f"Request failed: {str(e)}"
+            print(f"[ERROR] {error_msg}")
+            return None, error_msg
 
-    # For other endpoints, return not implemented
-    return jsonify({"error": "Endpoint not implemented"}), 501
+
+class MessageTransformer:
+    """Handles message format conversion between Anthropic and OpenAI formats."""
+
+    @classmethod
+    def anthropic_to_openai(cls, messages):
+        """Transform Anthropic messages to OpenAI format for GroqCloud."""
+        transformed_messages = []
+
+        for msg in messages:
+            if msg.get("role") == "user":
+                # Handle tool_result messages from Claude Code
+                content = msg.get("content", [])
+                if isinstance(content, list):
+                    text_parts = []
+                    for part in content:
+                        if part.get("type") == "tool_result":
+                            # Convert tool_result to text for GroqCloud
+                            tool_id = part.get("tool_use_id", "unknown")
+                            result = part.get("content", "")
+                            text_parts.append(f"Tool {tool_id} result: {result}")
+                        elif part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+
+                    transformed_messages.append({
+                        "role": "user",
+                        "content": "\n".join(text_parts) if text_parts else msg.get("content", "")
+                    })
+                else:
+                    transformed_messages.append(msg)
+            elif msg.get("role") == "assistant":
+                # Handle assistant messages with tool_use content
+                content = msg.get("content", [])
+                if isinstance(content, list):
+                    text_parts = []
+                    for part in content:
+                        if part.get("type") == "tool_use":
+                            # Convert tool_use to text for GroqCloud
+                            tool_name = part.get("name", "unknown")
+                            tool_input = part.get("input", {})
+                            text_parts.append(f"I need to use the {tool_name} tool with: {json.dumps(tool_input)}")
+                        elif part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+
+                    transformed_messages.append({
+                        "role": "assistant",
+                        "content": "\n".join(text_parts) if text_parts else msg.get("content", "")
+                    })
+                else:
+                    transformed_messages.append(msg)
+            else:
+                transformed_messages.append(msg)
+
+        return transformed_messages
+
+    @classmethod
+    def groq_to_anthropic_tools(cls, groq_response, original_model):
+        """Convert GroqCloud tool calls to Anthropic tool_use format."""
+        if not ('choices' in groq_response and groq_response['choices']):
+            return None
+
+        message = groq_response['choices'][0]['message']
+        if 'tool_calls' not in message:
+            return None
+
+        # Translate tool_calls to Anthropic tool_use format
+        tool_use_blocks = []
+        for tool_call in message['tool_calls']:
+            func_name = tool_call['function']['name']
+            func_args = json.loads(tool_call['function']['arguments'])
+            claude_tool_name, mapped_args = ClaudeToolMapper.map_to_claude_tool(func_name, func_args)
+
+            tool_use_blocks.append({
+                "type": "tool_use",
+                "id": tool_call['id'],
+                "name": claude_tool_name,
+                "input": mapped_args
+            })
+
+        return {
+            "id": groq_response.get("id"),
+            "type": "message",
+            "content": tool_use_blocks,
+            "model": original_model,
+            "usage": groq_response.get("usage", {}),
+            "stop_reason": "tool_use"
+        }
+
+    @classmethod
+    def groq_to_anthropic_text(cls, groq_response, original_model):
+        """Convert GroqCloud text response to Anthropic format."""
+        if not ('choices' in groq_response and groq_response['choices']):
+            return None
+
+        message = groq_response['choices'][0]['message']
+        content = message.get('content', '')
+
+        return {
+            "id": groq_response.get("id"),
+            "type": "message",
+            "content": [{"type": "text", "text": content}],
+            "model": original_model,
+            "usage": groq_response.get("usage", {})
+        }
+
+
+class GroqClaudeProxy:
+    """Main proxy class orchestrating all components."""
+
+    def __init__(self):
+        self.app = Flask(__name__)
+        self.api_client = GroqApiClient()
+        self.setup_routes()
+
+    def setup_routes(self):
+        """Setup Flask routes."""
+        @self.app.route('/v1/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+        def proxy_handler(path):
+            return self.handle_proxy_request(path)
+
+    def handle_proxy_request(self, path):
+        """Handle proxy requests with intelligent routing."""
+        if not self.api_client.authenticate():
+            return jsonify({"error": "GROQ_API_KEY not configured"}), 400
+
+        if path != "messages":
+            return jsonify({"error": "Endpoint not implemented"}), 501
+
+        data = request.get_json()
+        messages = data.get("messages", [])
+
+        # Detect web search requirement
+        has_web_search = "tools" in data and any(
+            tool.get("function", {}).get("name") in ["web_search", "browser_search"]
+            for tool in data.get("tools", [])
+        )
+
+        # Select model and configuration
+        selected_model, reasoning_level, supports_tools = GroqModelSelector.select_model_and_config(
+            messages, has_web_search, data.get("model", "claude-3-5-sonnet")
+        )
+
+        # Transform messages
+        transformed_messages = MessageTransformer.anthropic_to_openai(messages)
+
+        # Build OpenAI request
+        openai_request = {"model": selected_model, "messages": transformed_messages}
+
+        # Add reasoning effort for compatible models
+        if reasoning_level:
+            openai_request["reasoning_effort"] = reasoning_level
+
+        # Add tools for models that support them
+        if "tools" in data and supports_tools:
+            openai_request["tools"] = ClaudeToolMapper.generate_ultra_simple_tools()
+            openai_request["tool_choice"] = "auto"
+
+        # Send request to GroqCloud
+        groq_response, error = self.api_client.send_request(openai_request)
+        if error:
+            return jsonify({"error": error}), 500
+
+        # Check for tool calls first
+        anthropic_response = MessageTransformer.groq_to_anthropic_tools(groq_response, data.get("model", "claude-3-5-sonnet"))
+        if anthropic_response:
+            return jsonify(anthropic_response)
+
+        # Convert regular text response
+        anthropic_response = MessageTransformer.groq_to_anthropic_text(groq_response, data.get("model", "claude-3-5-sonnet"))
+        if anthropic_response:
+            return jsonify(anthropic_response)
+
+        return jsonify({"error": "Invalid response from GroqCloud"}), 500
+
+    def check_port_available(self, port):
+        """Check if port is available for the proxy."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+
+            if result == 0:
+                print(f"[WARNING] Another GroqCloud proxy is already running on port {port}!")
+                print(f"[WARNING] Only one GroqCloud proxy can run at a time.")
+                print("[WARNING] Shutting down in 3 seconds...")
+                for i in range(3, 0, -1):
+                    print(f"[WARNING] Shutting down in {i}...")
+                    time.sleep(1)
+                print(f"[ERROR] Exiting - port {port} is already in use")
+                exit(1)
+        except Exception:
+            pass  # Port is available
+
+    def start_server(self, port=5003):
+        """Start the proxy server with proper initialization."""
+        self.check_port_available(port)
+
+        print("=" * 80)
+        print("        GroqCloud Claude Code Proxy - ENHANCED VERSION v1.0.3")
+        print("=" * 80)
+        print("[SUCCESS] Clean class-based architecture with intelligent model selection!")
+        print("Models: openai/gpt-oss-120b (tools) + groq/compound (web search)")
+        print("All Claude Code tools working with 20x cost savings!")
+        print()
+
+        if self.api_client.authenticate():
+            print("[OK] GroqCloud API key found")
+            print("[TESTING] Connecting to GroqCloud API...")
+
+            if self.api_client.test_connection():
+                print("[SUCCESS] Connected to GroqCloud API")
+                print("[PROXY] Claude Code -> GroqCloud connection ready")
+            else:
+                print("[WARNING] Could not verify GroqCloud connection - continuing anyway")
+
+            print()
+            print(f"Starting enhanced proxy server on http://localhost:{port}...")
+            print()
+            print("[TOOLS] All 15+ Claude Code tools supported")
+            print("[MODELS] Intelligent routing (gpt-oss-120b <-> groq/compound)")
+            print("[COST] 20x cheaper than Anthropic with full functionality")
+            print()
+            print("Test with:")
+            print(f'claude --settings "{{\\"env\\": {{\\"ANTHROPIC_BASE_URL\\": \\"http://localhost:{port}\\", \\"ANTHROPIC_API_KEY\\": \\"dummy_key\\"}}}}" -p "What is 2+2?"')
+            print()
+            print("Press Ctrl+C to stop")
+            print("=" * 80)
+
+            self.app.run(host='127.0.0.1', port=port, debug=False)
+        else:
+            print("[ERROR] GROQ_API_KEY not found")
+            print("Please set your GroqCloud API key:")
+            print("1. Get key from: https://console.groq.com/keys")
+            print("2. Set it: set GROQ_API_KEY=your_key_here")
+
 
 if __name__ == "__main__":
-    print("================================================================================")
-    print("                GroqCloud Claude Code Proxy - FIXED VERSION")
-    print("================================================================================")
-    print("Ultra-simple tools based on GroqCloud ecommerce cookbook examples")
-    print("Fixed the 'Tools should have a name!' error")
-    print()
-
-    if get_groq_api_key():
-        print("[OK] GroqCloud API key found")
-        print("Starting proxy server on http://localhost:5003...")
-        print()
-        print("Test with:")
-        print('claude --settings "{\\"env\\": {\\"ANTHROPIC_BASE_URL\\": \\"http://localhost:5003\\", \\"ANTHROPIC_API_KEY\\": \\"dummy_key\\"}}" -p "Read the file test_file.txt"')
-        print()
-        print("Press Ctrl+C to stop")
-        print("================================================================================")
-
-        app.run(host='127.0.0.1', port=5003, debug=False)
-    else:
-        print("[ERROR] GROQ_API_KEY not found")
-        print("Please set your GroqCloud API key:")
-        print("1. Get key from: https://console.groq.com/keys")
-        print("2. Set it: set GROQ_API_KEY=your_key_here")
+    proxy = GroqClaudeProxy()
+    proxy.start_server()
