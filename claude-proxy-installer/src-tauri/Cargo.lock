@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "claude-proxy-installer"
-version = "1.0.0"
+version = "1.0.4"
 dependencies = [
  "dirs 5.0.1",
  "regex",

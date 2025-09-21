@@ -15,6 +15,8 @@ ping 127.0.0.1 -n 4 >nul
 REM Create temporary command file for Claude Code
 echo [2/2] Creating Claude Code command...
 echo @echo off > "%TEMP%\claude_groq.bat"
+echo REM Change to the directory where user originally ran claudeproxy >> "%TEMP%\claude_groq.bat"
+echo cd /d "%CLAUDEPROXY_ORIGINAL_DIR%" >> "%TEMP%\claude_groq.bat"
 echo claude --settings "{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5003\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}" --permission-mode plan >> "%TEMP%\claude_groq.bat"
 echo pause >> "%TEMP%\claude_groq.bat"
 

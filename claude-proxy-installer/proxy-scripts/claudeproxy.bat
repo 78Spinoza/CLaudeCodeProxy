@@ -7,6 +7,9 @@ REM   - Works from ANY folder
 REM   - Always runs Python + start scripts from this batch file's location
 REM ============================================================================
 
+REM Capture user's original working directory
+set "CLAUDEPROXY_ORIGINAL_DIR=%CD%"
+
 REM Move to script's directory
 pushd "%~dp0"
 

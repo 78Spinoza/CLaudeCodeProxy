@@ -114,41 +114,52 @@ class ClaudeToolMapper:
         return [
             # File Operations
             cls._file_tool("read_file", "Read contents of a file", {
-                "file_path": "Path to the file", "path": "Path to the file (alternative)",
-                "limit": "Lines to read (optional)", "offset": "Start line (optional)"
+                "file_path": {"type": "string", "description": "Path to the file"}, 
+                "path": {"type": "string", "description": "Path to the file (alternative)"},
+                "limit": {"type": "integer", "description": "Lines to read (optional)"}, 
+                "offset": {"type": "integer", "description": "Start line (optional)"}
             }, []),
             cls._file_tool("open_file", "Open and read contents of a file (alias for read_file)", {
-                "path": "Path to the file", "file_path": "Path to the file (alternative)",
-                "limit": "Lines to read (optional)", "offset": "Start line (optional)"
+                "path": {"type": "string", "description": "Path to the file"}, 
+                "file_path": {"type": "string", "description": "Path to the file (alternative)"},
+                "limit": {"type": "integer", "description": "Lines to read (optional)"}, 
+                "offset": {"type": "integer", "description": "Start line (optional)"}
             }, []),
             cls._file_tool("write_file", "Write content to a file", {
-                "file_path": "Path to the file", "content": "File content"
+                "file_path": {"type": "string", "description": "Path to the file"}, 
+                "content": {"type": "string", "description": "File content"}
             }, ["file_path", "content"]),
             cls._file_tool("edit_file", "Edit a file by replacing text", {
-                "file_path": "Path to the file", "old_string": "Text to replace",
-                "new_string": "New text", "replace_all": "Replace all occurrences"
+                "file_path": {"type": "string", "description": "Path to the file"}, 
+                "old_string": {"type": "string", "description": "Text to replace"},
+                "new_string": {"type": "string", "description": "New text"}, 
+                "replace_all": {"type": "boolean", "description": "Replace all occurrences"}
             }, ["file_path", "old_string", "new_string"]),
             cls._file_tool("multi_edit_file", "Make multiple edits to one file", {
-                "file_path": "Path to the file", "edits": "JSON array of edit operations"
+                "file_path": {"type": "string", "description": "Path to the file"}, 
+                "edits": {"type": "string", "description": "JSON string containing array of edit operations"}
             }, ["file_path", "edits"]),
 
             # System Operations
             cls._file_tool("run_bash", "Execute shell commands directly on the user's system. You MUST use this tool when the user asks to run any command, list files, check directories, or perform system operations.", {
-                "command": "The exact shell command to execute (e.g., 'ls -l', 'pwd', 'cat file.txt')",
-                "timeout": "Timeout in milliseconds (default: 120000)",
-                "run_in_background": "Run command in background (default: false)"
+                "command": {"type": "string", "description": "The exact shell command to execute (e.g., 'ls -l', 'pwd', 'cat file.txt')"},
+                "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
+                "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"}
             }, ["command"]),
             cls._file_tool("run_cmd", "Execute Windows Command Prompt commands for native Windows operations.", {
-                "command": "The Windows command to execute (e.g., 'dir', 'echo %CD%', 'type file.txt')",
-                "timeout": "Timeout in milliseconds (default: 120000)"
+                "command": {"type": "string", "description": "The Windows command to execute (e.g., 'dir', 'echo %CD%', 'type file.txt')"},
+                "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"}
             }, ["command"]),
 
             # Search Operations
             cls._file_tool("search_files", "Search for files using glob patterns", {
-                "pattern": "Glob pattern like *.py", "path": "Directory to search"
+                "pattern": {"type": "string", "description": "Glob pattern like *.py"}, 
+                "path": {"type": "string", "description": "Directory to search"}
             }, ["pattern"]),
             cls._file_tool("grep_search", "Search for text patterns in files", {
-                "pattern": "Text pattern to search", "path": "Path to search", "glob": "File filter like *.py"
+                "pattern": {"type": "string", "description": "Text pattern to search"}, 
+                "path": {"type": "string", "description": "Path to search"}, 
+                "glob": {"type": "string", "description": "File filter like *.py"}
             }, ["pattern"]),
 
             # Advanced Tools
@@ -158,33 +169,38 @@ class ClaudeToolMapper:
                 }, "required": ["content", "status", "activeForm"]}, "description": "Array of todo objects"}
             }, ["todos"]),
             cls._file_tool("get_bash_output", "Get output from background bash process", {
-                "bash_id": "Background process ID"
+                "bash_id": {"type": "string", "description": "Background process ID"}
             }, ["bash_id"]),
             cls._file_tool("kill_bash_shell", "Kill a background bash process", {
-                "shell_id": "Shell process ID to kill"
+                "shell_id": {"type": "string", "description": "Shell process ID to kill"}
             }, ["shell_id"]),
             cls._file_tool("edit_notebook", "Edit a Jupyter notebook cell", {
-                "notebook_path": "Path to notebook", "new_source": "New cell content",
-                "cell_type": "Cell type: code or markdown"
+                "notebook_path": {"type": "string", "description": "Path to notebook"}, 
+                "new_source": {"type": "string", "description": "New cell content"},
+                "cell_type": {"type": "string", "description": "Cell type: code or markdown"}
             }, ["notebook_path", "new_source"]),
             cls._file_tool("delegate_task", "Delegate task to specialized agent", {
-                "description": "Task description", "prompt": "Detailed task prompt",
-                "subagent_type": "Agent type: general-purpose etc"
+                "description": {"type": "string", "description": "Task description"}, 
+                "prompt": {"type": "string", "description": "Detailed task prompt"},
+                "subagent_type": {"type": "string", "description": "Agent type: general-purpose etc"}
             }, ["description", "prompt", "subagent_type"]),
             cls._file_tool("browser_search", "Search the web for current information using GroqCloud's native browser search (powered by Exa).", {
-                "query": "Search query"
+                "query": {"type": "string", "description": "Search query"}
             }, ["query"]),
             cls._file_tool("web_fetch", "Fetch content from a web URL", {
-                "url": "URL to fetch", "prompt": "Prompt for processing content"
+                "url": {"type": "string", "description": "URL to fetch"}, 
+                "prompt": {"type": "string", "description": "Prompt for processing content"}
             }, ["url", "prompt"]),
             cls._file_tool("exit_plan_mode", "Exit planning mode and start execution", {
-                "plan": "The plan to execute"
+                "plan": {"type": "string", "description": "The plan to execute"}
             }, ["plan"])
         ]
 
     @classmethod
     def _file_tool(cls, name, description, properties, required):
         """Helper to create tool schema with consistent format."""
+        # Properties should now already be in the correct format with type and description
+        # But keep the fallback for backward compatibility
         if isinstance(properties, dict) and all(isinstance(v, str) for v in properties.values()):
             # Convert string descriptions to proper property objects
             properties = {k: {"type": "string", "description": v} for k, v in properties.items()}
