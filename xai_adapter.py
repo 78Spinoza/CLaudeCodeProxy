@@ -13,7 +13,7 @@ import time
 from flask import jsonify, Response, stream_with_context
 
 # Import shared utilities
-from proxy_common import ClaudeToolMapper, MessageTransformer
+from proxy_common import ClaudeToolMapper, MessageTransformer, BaseApiClient
 
 logger = logging.getLogger(__name__)
 
@@ -77,122 +77,23 @@ class XAIModelSelector:
         return text
 
 
-class XAIApiClient(BaseApiClient):\n    def __init__(self):\n        super().__init__('xAI', 'XAI_API_KEY', 'https://api.x.ai/v1/chat/completions')\n\n    def send_request(self, request_data, stream=False):\n        # Use base class but customize model if needed\n        return super().send_request(request_data, stream)
+class XAIApiClient(BaseApiClient):
     """Handles xAI API communication and authentication with robust retry logic."""
 
     def __init__(self):
-        self.api_key = None
-        self.base_url = "https://api.x.ai/v1/chat/completions"
-
-            """Get xAI API key from environment or Windows registry."""
-        env_key = os.getenv('XAI_API_KEY')
-        if not env_key and os.name == 'nt':
-            try:
-                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
-                    registry_value, _ = winreg.QueryValueEx(key, "XAI_API_KEY")
-                    env_key = registry_value.strip().strip('"')
-            except Exception:
-                pass
-        if env_key and env_key != "NA":
-            self.api_key = env_key
-            return True
-        logger.error("[ERROR] XAI_API_KEY not found in environment or registry")
-        return False
-
-            """Test a minimal request to verify the key works."""
-        if not self.api_key:
-            return False
-
-        try:
-            headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-            test_req = {"model": "grok-code-fast-1", "messages": [{"role": "user", "content": "test"}], "max_tokens": 1}
-            resp = requests.post(self.base_url, headers=headers, json=test_req, timeout=10)
-            return resp.status_code == 200
-        except Exception as e:
-            logger.debug(f"Connection test failed: {e}")
-            return False
-
-            """Send request to xAI endpoint with robust retry logic and error handling."""
-        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-
-        if stream:
-            def generate():
-                response = requests.post(self.base_url, headers=headers, json=xai_request, stream=True, timeout=60)
-                response.raise_for_status()
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        yield chunk
-            return Response(stream_with_context(generate()), content_type='text/event-stream')
-
-        # Non-streaming requests with retry logic
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                response = requests.post(self.base_url, headers=headers, json=xai_request, timeout=60)
-                
-                if response.status_code == 200:
-                    logger.debug(f"xAI request successful on attempt {attempt + 1}")
-                    return response
-                elif response.status_code == 429:
-                    # Rate limit handling
-                    wait_time = min(2 ** attempt, 30)
-                    if attempt < max_retries - 1:
-                        logger.warning(f"xAI rate limit hit on attempt {attempt + 1}/{max_retries}. Waiting {wait_time}s before retry...")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        logger.error(f"xAI rate limit exceeded after {max_retries} attempts")
-                        return response
-                elif response.status_code >= 500:
-                    # Server errors - retry
-                    wait_time = min(2 ** attempt, 15)
-                    if attempt < max_retries - 1:
-                        logger.warning(f"xAI server error {response.status_code} on attempt {attempt + 1}. Retrying in {wait_time}s...")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        logger.error(f"xAI server error persists after {max_retries} attempts: {response.status_code}")
-                        return response
-                else:
-                    # Client errors (4xx) - don't retry
-                    logger.error(f"xAI client error: {response.status_code} {response.text}")
-                    return response
-                    
-            except requests.exceptions.ConnectionError as e:
-                wait_time = min(2 ** attempt, 15)
-                if attempt < max_retries - 1:
-                    logger.warning(f"xAI connection dropped on attempt {attempt + 1}: {e}. Retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    logger.error(f"xAI connection failed after {max_retries} attempts: {e}")
-                    raise
-            except requests.exceptions.Timeout as e:
-                wait_time = min(2 ** attempt, 15)
-                if attempt < max_retries - 1:
-                    logger.warning(f"xAI timeout on attempt {attempt + 1}: {e}. Retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    logger.error(f"xAI timeout after {max_retries} attempts: {e}")
-                    raise
-            except Exception as e:
-                wait_time = min(2 ** attempt, 15)
-                if attempt < max_retries - 1:
-                    logger.warning(f"xAI request failed on attempt {attempt + 1}: {e}. Retrying in {wait_time}s...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    logger.error(f"xAI request failed after {max_retries} attempts: {e}")
-                    raise
-        
-        raise Exception("All retry attempts failed")
+        super().__init__(
+            base_url="https://api.x.ai/v1/chat/completions",
+            env_var_name="XAI_API_KEY", 
+            provider_name="xAI",
+            default_test_model="grok-code-fast-1"
+        )
 
 
 class XAIAdapter:
     """Adapter exposing the interface required by BaseClaudeProxy for xAI."""
 
     def __init__(self):
+        self.name = "xAI"  # Required by BaseClaudeProxy
         self.api_client = XAIApiClient()
         self.model_selector = XAIModelSelector()
         self.tool_mapper = ClaudeToolMapper()
@@ -200,7 +101,7 @@ class XAIAdapter:
 
     def authenticate(self) -> bool:
         """Validate the API key is present."""
-        return self.api_client.get_api_key()
+        return self.api_client.authenticate()
 
     def test_connection(self) -> bool:
         """Test connection to xAI API."""
@@ -240,24 +141,25 @@ class XAIAdapter:
 
         try:
             logger.info(f"Sending request to xAI using model: {selected_model}")
-            response = self.api_client.send_request(xai_payload, xai_payload.get("stream", False))
+            response, error = self.api_client.send_request(xai_payload, xai_payload.get("stream", False))
             
             # Streaming responses are already a Flask ``Response`` object
             if isinstance(response, Response):
                 return response
 
-            if response.status_code == 200:
-                xai_response = response.json()
+            if error:
+                logger.error(f"xAI API Error: {error}")
+                return jsonify({"error": "Service temporarily unavailable. The AI service is experiencing high demand. Please try again in a moment."}), 503
+
+            if response:
                 anthropic_resp = self.message_transformer.transform_xai_to_anthropic(
-                    xai_response,
+                    response,
                     original_model,
                     self.tool_mapper.TOOL_MAPPING,
                     self.api_client
                 )
                 return jsonify(anthropic_resp)
             else:
-                error_msg = f"xAI API Error: {response.status_code} {response.text}"
-                logger.error(error_msg)
                 return jsonify({"error": "Service temporarily unavailable. The AI service is experiencing high demand. Please try again in a moment."}), 503
         except Exception as e:
             error_msg = f"Request failed: {str(e)}"
