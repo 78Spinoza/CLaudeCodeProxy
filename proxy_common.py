@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.15"
+PROXY_VERSION = "1.0.17"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -300,20 +300,22 @@ class ClaudeToolMapper:
                 "Read contents of a file",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
+                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
-                ["file_path"],
+                [],
             ),
             cls._file_tool(
                 "open_file",
                 "Open and read contents of a file (alias for read_file)",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
+                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
-                ["file_path"],
+                [],
             ),
             cls._file_tool(
                 "write_file",
@@ -329,24 +331,26 @@ class ClaudeToolMapper:
                 "Edit a file by replacing text. Execute directly without announcements.",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
+                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
                     "old_string": {"type": "string", "description": "Text to replace"},
                     "new_string": {"type": "string", "description": "New text"},
                     "replace_all": {"type": "boolean", "description": "Replace all occurrences"},
                 },
-                ["file_path", "old_string", "new_string"],
+                ["old_string", "new_string"],
             ),
             cls._file_tool(
                 "multi_edit_file",
                 "Make multiple edits to a file. Execute directly without announcements.",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
+                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
                     "edits": {
                         "type": "array",
                         "description": "Array of edit operations",
                         "items": {"type": "object"},
                     },
                 },
-                ["file_path", "edits"],
+                ["edits"],
             ),
             # System Operations with OS-aware descriptions
             *cls._generate_os_aware_command_tools(),
@@ -695,13 +699,16 @@ class MessageTransformer:
                 else:
                     # Leave Unix-style, external commands, or already-wrapped commands unwrapped
                     logger.debug(f"[Groq] Keeping command unwrapped: {original_command}")
-            elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
-                # Handle parameter mapping for file operations
-                logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
-                logger.info(f"[GROQ PARAM MAP CRITICAL] Original args: {list(func_args.keys())}")
-                func_args["file_path"] = func_args.pop("path")
-                logger.info(f"[GROQ PARAM MAP CRITICAL] After mapping: {list(func_args.keys())}")
-                logger.info(f"[GROQ PARAM MAP CRITICAL] Final args: {func_args}")
+            elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"]:
+                # Handle parameter mapping for file operations - always ensure file_path is used
+                if "path" in func_args and "file_path" not in func_args:
+                    logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                    func_args["file_path"] = func_args.pop("path")
+                elif "path" in func_args and "file_path" in func_args:
+                    # Both present - remove path and keep file_path
+                    logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - removing duplicate 'path' parameter, keeping 'file_path'")
+                    func_args.pop("path")
+                logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} final args: {list(func_args.keys())}")
 
             # Handle TodoWrite parameter mapping and fixing
             if func_name in ["todo_write", "manage_todos"]:
@@ -739,14 +746,19 @@ class MessageTransformer:
                 func_args = {k: v for k, v in func_args.items() if v is not None}
                 logger.debug(f"[GROQ PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
 
-            # Special formatting for ExitPlanMode - minimal processing
+            # Special formatting for ExitPlanMode - add proper newlines for readability
             if func_name == "exit_plan_mode" and "plan" in func_args:
                 plan_raw = func_args["plan"]
                 logger.debug(f"[Groq] ExitPlanMode plan type: {type(plan_raw)}")
-                # Pass plan through with minimal processing - only fix common encoding issues
+                # Add proper formatting with newlines after numbered points
                 if isinstance(plan_raw, str):
-                    # Only fix the most common HTML entities that definitely shouldn't be in plans
+                    # Fix HTML entities first
                     plan_raw = plan_raw.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                    # Add newlines after numbered points (1. 2. 3. etc.) for better readability
+                    import re
+                    plan_raw = re.sub(r'(\d+\.\s[^.]*?\.\s)', r'\1\n\n', plan_raw)
+                    # Clean up multiple newlines
+                    plan_raw = re.sub(r'\n{3,}', '\n\n', plan_raw)
                 func_args["plan"] = plan_raw
             
             # Special formatting for TodoWrite - ONLY preserve Claude Code fields
@@ -907,13 +919,16 @@ class MessageTransformer:
                     else:
                         # Leave Unix-style, external commands, or already-wrapped commands unwrapped
                         logger.debug(f"[xAI] Keeping command unwrapped: {original_command}")
-                elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
-                    # Handle parameter mapping for file operations
-                    logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
-                    logger.info(f"[XAI PARAM MAP CRITICAL] Original args: {list(func_args.keys())}")
-                    func_args["file_path"] = func_args.pop("path")
-                    logger.info(f"[XAI PARAM MAP CRITICAL] After mapping: {list(func_args.keys())}")
-                    logger.info(f"[XAI PARAM MAP CRITICAL] Final args: {func_args}")
+                elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"]:
+                    # Handle parameter mapping for file operations - always ensure file_path is used
+                    if "path" in func_args and "file_path" not in func_args:
+                        logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                        func_args["file_path"] = func_args.pop("path")
+                    elif "path" in func_args and "file_path" in func_args:
+                        # Both present - remove path and keep file_path
+                        logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - removing duplicate 'path' parameter, keeping 'file_path'")
+                        func_args.pop("path")
+                    logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} final args: {list(func_args.keys())}")
 
                 # Handle TodoWrite parameter mapping and fixing
                 if func_name in ["todo_write", "manage_todos"]:
@@ -951,14 +966,19 @@ class MessageTransformer:
                     func_args = {k: v for k, v in func_args.items() if v is not None}
                     logger.debug(f"[XAI PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
 
-                # Special formatting for ExitPlanMode - minimal processing
+                # Special formatting for ExitPlanMode - add proper newlines for readability
                 if func_name == "exit_plan_mode" and "plan" in func_args:
                     plan_raw = func_args["plan"]
                     logger.debug(f"[xAI] ExitPlanMode plan type: {type(plan_raw)}")
-                    # Pass plan through with minimal processing - only fix common encoding issues
+                    # Add proper formatting with newlines after numbered points
                     if isinstance(plan_raw, str):
-                        # Only fix the most common HTML entities that definitely shouldn't be in plans
+                        # Fix HTML entities first
                         plan_raw = plan_raw.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                        # Add newlines after numbered points (1. 2. 3. etc.) for better readability
+                        import re
+                        plan_raw = re.sub(r'(\d+\.\s[^.]*?\.\s)', r'\1\n\n', plan_raw)
+                        # Clean up multiple newlines
+                        plan_raw = re.sub(r'\n{3,}', '\n\n', plan_raw)
                     func_args["plan"] = plan_raw
                 
                 # Special formatting for TodoWrite - ONLY preserve Claude Code fields

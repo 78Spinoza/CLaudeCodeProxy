@@ -1,6 +1,6 @@
 {
   "productName": "Claude Proxy Installer",
-  "version": "1.0.15",
+  "version": "1.0.17",
   "identifier": "com.claudeproxy.installer",
   "build": {
     "beforeDevCommand": "npm run dev",

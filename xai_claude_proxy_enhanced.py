@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-xAI Claude Code Proxy - ENHANCED VERSION v1.0.15
+xAI Claude Code Proxy - ENHANCED VERSION v1.0.17
 ===============================================
 
 Clean class-based architecture for xAI Claude Code integration.

@@ -17,7 +17,7 @@ echo [2/2] Creating Claude Code command...
 echo @echo off > "%TEMP%\claude_xai.bat"
 echo REM Change to the directory where user originally ran claudeproxy >> "%TEMP%\claude_xai.bat"
 echo cd /d "%CLAUDEPROXY_ORIGINAL_DIR%" >> "%TEMP%\claude_xai.bat"
-echo claude --settings "{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5000\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}" --permission-mode plan >> "%TEMP%\claude_xai.bat"
+echo claude --settings "{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5000\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}" >> "%TEMP%\claude_xai.bat"
 echo pause >> "%TEMP%\claude_xai.bat"
 
 REM Start Claude Code in new window

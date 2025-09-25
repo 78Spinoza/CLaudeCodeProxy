@@ -135,7 +135,7 @@ fi
 start_xai_proxy() {
     echo "Starting xAI enhanced proxy on port 5000..."
     echo "After proxy starts, use Claude Code with:"
-    echo "claude --settings '{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5000\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}' --permission-mode plan"
+    echo "claude --settings '{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5000\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}'"
     echo ""
     echo "Press Ctrl+C to stop the proxy when done."
     echo ""
@@ -146,7 +146,7 @@ start_xai_proxy() {
 start_groq_proxy() {
     echo "Starting GroqCloud enhanced proxy on port 5003..."
     echo "After proxy starts, use Claude Code with:"
-    echo "claude --settings '{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5003\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}' --permission-mode plan"
+    echo "claude --settings '{\"env\": {\"ANTHROPIC_BASE_URL\": \"http://localhost:5003\", \"ANTHROPIC_API_KEY\": \"dummy_key\"}}'"
     echo ""
     echo "Press Ctrl+C to stop the proxy when done."
     echo ""
