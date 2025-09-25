@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.13
+# Claude Proxy Architecture Overview v1.0.15
 
 ## Purpose
 
@@ -123,6 +123,21 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 These commands are processed in a background thread (`_console_input_handler`).
 
 ---
+
+## v1.0.15 Architecture Improvements
+
+**Anti-Verbose Tool Execution:**
+- **Direct Tool Execution**: Added "Execute directly without announcements" to tool descriptions
+- **Eliminated Verbose Announcements**: Prevents "I need to use..." messages before tool calls
+- **Streamlined UX**: Tools now execute immediately without explanation overhead
+- **Applied to Critical Tools**: ExitPlanMode, TodoWrite, EditFile, MultiEditFile
+
+## v1.0.14 Architecture Improvements
+
+**Enhanced Parameter Mapping Debugging:**
+- **Critical Debug Logging**: Added INFO level logging for parameter mapping issues
+- **Tool Validation Tracing**: Detailed logging of parameter transformations
+- **Diagnostic Improvements**: Better visibility into tool call processing
 
 ## v1.0.13 Architecture Improvements
 
