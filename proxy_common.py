@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.10"
+PROXY_VERSION = "1.0.11"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -701,6 +701,11 @@ class MessageTransformer:
                 func_args["file_path"] = func_args.pop("path")
                 logger.debug(f"[GROQ PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
 
+            # Remove null values from parameters (causes schema validation errors)
+            if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
+                func_args = {k: v for k, v in func_args.items() if v is not None}
+                logger.debug(f"[GROQ PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
+
             # Special formatting for ExitPlanMode - minimal processing
             if func_name == "exit_plan_mode" and "plan" in func_args:
                 plan_raw = func_args["plan"]
@@ -874,6 +879,11 @@ class MessageTransformer:
                     logger.debug(f"[XAI PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
                     func_args["file_path"] = func_args.pop("path")
                     logger.debug(f"[XAI PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
+
+                # Remove null values from parameters (causes schema validation errors)
+                if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
+                    func_args = {k: v for k, v in func_args.items() if v is not None}
+                    logger.debug(f"[XAI PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
 
                 # Special formatting for ExitPlanMode - minimal processing
                 if func_name == "exit_plan_mode" and "plan" in func_args:
