@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.6"
+PROXY_VERSION = "1.0.7"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -677,10 +677,24 @@ class MessageTransformer:
 
             # Handle command environment detection and preprocessing
             if func_name == "run_cmd" and "command" in func_args:
-                # Windows CMD commands - wrap with cmd /c for proper execution
-                original_command = func_args.get("command", "")
-                func_args["command"] = f'cmd /c "{original_command}"'
-                logger.debug(f"[Groq] Wrapped Windows command: {original_command} -> cmd /c \"{original_command}\"")
+                original_command = func_args.get("command", "").strip()
+                # Only wrap Windows internal commands, not external programs
+                windows_internal_commands = [
+                    "dir", "type", "echo", "copy", "move", "del", "md", "mkdir",
+                    "rd", "rmdir", "cd", "chdir", "cls", "date", "time", "vol",
+                    "ver", "path", "set", "where"
+                ]
+
+                # Extract the base command (first word)
+                base_command = original_command.split()[0].lower() if original_command else ""
+
+                # Only wrap if it's a Windows internal command
+                if get_current_os() == "windows" and base_command in windows_internal_commands:
+                    func_args["command"] = f'cmd /c "{original_command}"'
+                    logger.debug(f"[Groq] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
+                else:
+                    # Leave external commands (git, python, npm, etc.) unwrapped
+                    logger.debug(f"[Groq] Keeping external command unwrapped: {original_command}")
             elif func_name in ["read_file", "open_file"] and "path" in func_args and "file_path" not in func_args:
                 # Handle parameter mapping for read_file variants
                 func_args["file_path"] = func_args.pop("path")
@@ -835,10 +849,24 @@ class MessageTransformer:
 
                 # Handle command environment detection and preprocessing
                 if func_name == "run_cmd" and "command" in func_args:
-                    # Windows CMD commands - wrap with cmd /c for proper execution
-                    original_command = func_args.get("command", "")
-                    func_args["command"] = f'cmd /c "{original_command}"'
-                    logger.debug(f"[xAI] Wrapped Windows command: {original_command} -> cmd /c \"{original_command}\"")
+                    original_command = func_args.get("command", "").strip()
+                    # Only wrap Windows internal commands, not external programs
+                    windows_internal_commands = [
+                        "dir", "type", "echo", "copy", "move", "del", "md", "mkdir",
+                        "rd", "rmdir", "cd", "chdir", "cls", "date", "time", "vol",
+                        "ver", "path", "set", "where"
+                    ]
+
+                    # Extract the base command (first word)
+                    base_command = original_command.split()[0].lower() if original_command else ""
+
+                    # Only wrap if it's a Windows internal command
+                    if get_current_os() == "windows" and base_command in windows_internal_commands:
+                        func_args["command"] = f'cmd /c "{original_command}"'
+                        logger.debug(f"[xAI] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
+                    else:
+                        # Leave external commands (git, python, npm, etc.) unwrapped
+                        logger.debug(f"[xAI] Keeping external command unwrapped: {original_command}")
                 elif func_name in ["read_file", "open_file"] and "path" in func_args and "file_path" not in func_args:
                     # Handle parameter mapping for read_file variants
                     func_args["file_path"] = func_args.pop("path")

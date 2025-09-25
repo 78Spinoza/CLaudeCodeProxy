@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.6
+# Claude Proxy Architecture Overview v1.0.7
 
 ## Purpose
 
@@ -124,12 +124,19 @@ These commands are processed in a background thread (`_console_input_handler`).
 
 ---
 
+## v1.0.7 Architecture Improvements
+
+**Critical Bug Fix:**
+- **Fixed Command Execution**: Resolved double cmd /c wrapping that broke git, python, npm and other external commands
+- **Smart Command Detection**: Now only wraps Windows internal commands (dir, type, echo) while leaving external programs unwrapped
+- **Proper Git Integration**: Git commands now execute correctly without Windows command prompt interference
+
 ## v1.0.6 Architecture Improvements
 
 **Tool Schema Enhancements:**
 - **OS-Aware Descriptions**: Tools automatically adapt descriptions based on detected OS (Windows/Unix/macOS)
 - **Non-Verbose Execution**: Removed "MANDATORY" language that caused announcement chatter
-- **Command Environment Detection**: `run_cmd` automatically wraps with `cmd /c` on Windows
+- **Smart Command Wrapping**: `run_cmd` only wraps Windows internal commands (dir, type, echo) with `cmd /c`, leaves external programs (git, python, npm) unwrapped
 - **Proper Field Validation**: TodoWrite uses exact 3-field schema (`content`, `status`, `activeForm`)
 
 **Startup & Debugging:**
