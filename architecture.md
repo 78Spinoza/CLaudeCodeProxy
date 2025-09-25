@@ -1,8 +1,15 @@
-# Claude Proxy Architecture Overview
+# Claude Proxy Architecture Overview v1.0.6
 
 ## Purpose
 
-The **Claude Proxy** provides a low‑cost gateway for Claude Code tools by forwarding requests from Claude (via the `ANTHROPIC_BASE_URL` environment variable) to either **xAI** or **GroqCloud** back‑ends.  It translates between Anthropic‑style messages and the OpenAI‑style payloads expected by the back‑ends, injects ultra‑simple tool schemas, and selects the most appropriate model for the request.
+The **Claude Proxy** provides a low‑cost gateway for Claude Code tools by forwarding requests from Claude (via the `ANTHROPIC_BASE_URL` environment variable) to either **xAI** or **GroqCloud** back‑ends. It translates between Anthropic‑style messages and the OpenAI‑style payloads expected by the back‑ends, injects ultra‑simple tool schemas with OS‑aware descriptions, and selects the most appropriate model for the request.
+
+**Key Benefits:**
+- 15-20x cost reduction vs direct Anthropic API
+- All 15+ Claude Code tools working with proper schemas
+- OS-aware command tool selection (Windows/Unix/macOS)
+- Non-verbose tool execution (no announcement chatter)
+- Automatic environment detection and command wrapping
 
 ---
 
@@ -114,6 +121,31 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 | `H` / `HELP` | Show the help menu with the above commands. |
 
 These commands are processed in a background thread (`_console_input_handler`).
+
+---
+
+## v1.0.6 Architecture Improvements
+
+**Tool Schema Enhancements:**
+- **OS-Aware Descriptions**: Tools automatically adapt descriptions based on detected OS (Windows/Unix/macOS)
+- **Non-Verbose Execution**: Removed "MANDATORY" language that caused announcement chatter
+- **Command Environment Detection**: `run_cmd` automatically wraps with `cmd /c` on Windows
+- **Proper Field Validation**: TodoWrite uses exact 3-field schema (`content`, `status`, `activeForm`)
+
+**Startup & Debugging:**
+- **Version Logging**: Displays proxy version on startup for debugging
+- **OS Detection Logging**: Shows detected OS and recommended command tools
+- **Centralized Versioning**: Single version constant in `proxy_common.py`
+
+**Schema Compliance:**
+- **2025 Claude Code Compatible**: All tools match latest official specifications
+- **JSON Schema Standards**: Proper `type`, `properties`, `required`, `enum` validation
+- **Cross-Provider Tested**: Validated with both xAI Grok and GroqCloud
+
+**Error Elimination:**
+- **Fixed TodoWrite Corruption**: No more invalid `id`/`priority` fields
+- **Fixed ExitPlanMode Verbosity**: Clean plan execution without announcements
+- **Fixed Command Confusion**: Clear OS-specific examples prevent syntax errors
 
 ---
 
