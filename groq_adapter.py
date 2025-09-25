@@ -85,7 +85,7 @@ class GroqAdapter:
         self.message_transformer = MessageTransformer()
 
         # Log version and OS detection for debugging
-        print(f"[GroqCloud] ✓ Claude Code Proxy v{PROXY_VERSION}")
+        print(f"[GroqCloud] Claude Code Proxy v{PROXY_VERSION} ready")
         self.tool_mapper.log_os_detection("GroqCloud")
 
     def authenticate(self) -> bool:

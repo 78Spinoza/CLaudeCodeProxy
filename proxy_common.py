@@ -215,8 +215,8 @@ class ClaudeToolMapper:
         logger.info(f"[{provider_name}] OS Detection - System: {os_info['current_system']}")
         logger.info(f"[{provider_name}] Primary tool: {os_info['primary_tool']} ({os_info['primary_desc']})")
         logger.info(f"[{provider_name}] Shell environment: {os_info['shell_info']}")
-        print(f"[{provider_name}] ✓ OS-aware tool registration: {os_info['current_system']} detected")
-        print(f"[{provider_name}] ✓ Recommended command tool: {os_info['primary_tool']}")
+        print(f"[{provider_name}] OS-aware tool registration: {os_info['current_system']} detected")
+        print(f"[{provider_name}] Recommended command tool: {os_info['primary_tool']}")
 
     # Tool name mappings from provider to Claude Code
     TOOL_MAPPING = {

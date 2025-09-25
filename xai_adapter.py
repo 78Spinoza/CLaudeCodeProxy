@@ -100,7 +100,7 @@ class XAIAdapter:
         self.message_transformer = MessageTransformer()
 
         # Log version and OS detection for debugging
-        print(f"[xAI] ✓ Claude Code Proxy v{PROXY_VERSION}")
+        print(f"[xAI] Claude Code Proxy v{PROXY_VERSION} ready")
         self.tool_mapper.log_os_detection("xAI")
 
     def authenticate(self) -> bool:
