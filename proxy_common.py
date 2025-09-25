@@ -678,23 +678,23 @@ class MessageTransformer:
             # Handle command environment detection and preprocessing
             if func_name == "run_cmd" and "command" in func_args:
                 original_command = func_args.get("command", "").strip()
-                # Only wrap Windows internal commands, not external programs
-                windows_internal_commands = [
-                    "dir", "type", "echo", "copy", "move", "del", "md", "mkdir",
-                    "rd", "rmdir", "cd", "chdir", "cls", "date", "time", "vol",
-                    "ver", "path", "set", "where"
+
+                # Detect Windows-style commands and paths
+                windows_indicators = [
+                    "\\", "/d", "C:", "D:", "E:", "F:",  # Windows paths and cd flags
+                    "dir ", "type ", "copy ", "move ", "del ", "cls", "where "  # Windows commands
                 ]
 
-                # Extract the base command (first word)
-                base_command = original_command.split()[0].lower() if original_command else ""
+                # Check if this looks like a Windows command
+                is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
-                # Only wrap if it's a Windows internal command
-                if ClaudeToolMapper.get_current_os() == "windows" and base_command in windows_internal_commands:
+                # On Windows, if command has Windows indicators, wrap it
+                if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command:
                     func_args["command"] = f'cmd /c "{original_command}"'
-                    logger.debug(f"[Groq] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
+                    logger.debug(f"[Groq] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                 else:
-                    # Leave external commands (git, python, npm, etc.) unwrapped
-                    logger.debug(f"[Groq] Keeping external command unwrapped: {original_command}")
+                    # Leave Unix-style or external commands unwrapped
+                    logger.debug(f"[Groq] Keeping command unwrapped: {original_command}")
             elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                 # Handle parameter mapping for file operations
                 logger.debug(f"[GROQ PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
@@ -852,23 +852,23 @@ class MessageTransformer:
                 # Handle command environment detection and preprocessing
                 if func_name == "run_cmd" and "command" in func_args:
                     original_command = func_args.get("command", "").strip()
-                    # Only wrap Windows internal commands, not external programs
-                    windows_internal_commands = [
-                        "dir", "type", "echo", "copy", "move", "del", "md", "mkdir",
-                        "rd", "rmdir", "cd", "chdir", "cls", "date", "time", "vol",
-                        "ver", "path", "set", "where"
+
+                    # Detect Windows-style commands and paths
+                    windows_indicators = [
+                        "\\", "/d", "C:", "D:", "E:", "F:",  # Windows paths and cd flags
+                        "dir ", "type ", "copy ", "move ", "del ", "cls", "where "  # Windows commands
                     ]
 
-                    # Extract the base command (first word)
-                    base_command = original_command.split()[0].lower() if original_command else ""
+                    # Check if this looks like a Windows command
+                    is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
-                    # Only wrap if it's a Windows internal command
-                    if ClaudeToolMapper.get_current_os() == "windows" and base_command in windows_internal_commands:
+                    # On Windows, if command has Windows indicators, wrap it
+                    if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command:
                         func_args["command"] = f'cmd /c "{original_command}"'
-                        logger.debug(f"[xAI] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
+                        logger.debug(f"[xAI] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                     else:
-                        # Leave external commands (git, python, npm, etc.) unwrapped
-                        logger.debug(f"[xAI] Keeping external command unwrapped: {original_command}")
+                        # Leave Unix-style or external commands unwrapped
+                        logger.debug(f"[xAI] Keeping command unwrapped: {original_command}")
                 elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                     # Handle parameter mapping for file operations
                     logger.debug(f"[XAI PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
