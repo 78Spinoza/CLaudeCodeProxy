@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.11"
+PROXY_VERSION = "1.0.12"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -701,8 +701,39 @@ class MessageTransformer:
                 func_args["file_path"] = func_args.pop("path")
                 logger.debug(f"[GROQ PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
 
+            # Handle TodoWrite parameter mapping and fixing
+            if func_name in ["todo_write", "manage_todos"]:
+                # Fix common TodoWrite parameter issues
+                if "tasks" in func_args and "todos" not in func_args:
+                    # Map tasks -> todos
+                    func_args["todos"] = func_args.pop("tasks")
+                    logger.debug(f"[GROQ TODO FIX] Mapped 'tasks' to 'todos'")
+
+                # Ensure todos is a list and fix structure
+                if "todos" in func_args and isinstance(func_args["todos"], list):
+                    fixed_todos = []
+                    for todo in func_args["todos"]:
+                        if isinstance(todo, str):
+                            # Convert string to proper todo object
+                            fixed_todos.append({
+                                "content": todo,
+                                "status": "pending",
+                                "activeForm": todo
+                            })
+                        elif isinstance(todo, dict):
+                            # Fix dict structure
+                            content = todo.get("description") or todo.get("content", "")
+                            status = todo.get("status", "pending")
+                            fixed_todos.append({
+                                "content": content,
+                                "status": status,
+                                "activeForm": content
+                            })
+                    func_args["todos"] = fixed_todos
+                    logger.debug(f"[GROQ TODO FIX] Fixed {len(fixed_todos)} todo items")
+
             # Remove null values from parameters (causes schema validation errors)
-            if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
+            if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file", "todo_write", "manage_todos"]:
                 func_args = {k: v for k, v in func_args.items() if v is not None}
                 logger.debug(f"[GROQ PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
 
@@ -880,8 +911,39 @@ class MessageTransformer:
                     func_args["file_path"] = func_args.pop("path")
                     logger.debug(f"[XAI PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
 
+                # Handle TodoWrite parameter mapping and fixing
+                if func_name in ["todo_write", "manage_todos"]:
+                    # Fix common TodoWrite parameter issues
+                    if "tasks" in func_args and "todos" not in func_args:
+                        # Map tasks -> todos
+                        func_args["todos"] = func_args.pop("tasks")
+                        logger.debug(f"[XAI TODO FIX] Mapped 'tasks' to 'todos'")
+
+                    # Ensure todos is a list and fix structure
+                    if "todos" in func_args and isinstance(func_args["todos"], list):
+                        fixed_todos = []
+                        for todo in func_args["todos"]:
+                            if isinstance(todo, str):
+                                # Convert string to proper todo object
+                                fixed_todos.append({
+                                    "content": todo,
+                                    "status": "pending",
+                                    "activeForm": todo
+                                })
+                            elif isinstance(todo, dict):
+                                # Fix dict structure
+                                content = todo.get("description") or todo.get("content", "")
+                                status = todo.get("status", "pending")
+                                fixed_todos.append({
+                                    "content": content,
+                                    "status": status,
+                                    "activeForm": content
+                                })
+                        func_args["todos"] = fixed_todos
+                        logger.debug(f"[XAI TODO FIX] Fixed {len(fixed_todos)} todo items")
+
                 # Remove null values from parameters (causes schema validation errors)
-                if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
+                if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file", "todo_write", "manage_todos"]:
                     func_args = {k: v for k, v in func_args.items() if v is not None}
                     logger.debug(f"[XAI PARAM CLEAN] {func_name} - removed null parameters: {list(func_args.keys())}")
 
