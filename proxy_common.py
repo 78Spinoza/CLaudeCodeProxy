@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.9"
+PROXY_VERSION = "1.0.10"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -688,12 +688,12 @@ class MessageTransformer:
                 # Check if this looks like a Windows command
                 is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
-                # On Windows, if command has Windows indicators, wrap it
-                if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command:
+                # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
+                if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and not original_command.startswith('cmd /c'):
                     func_args["command"] = f'cmd /c "{original_command}"'
                     logger.debug(f"[Groq] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                 else:
-                    # Leave Unix-style or external commands unwrapped
+                    # Leave Unix-style, external commands, or already-wrapped commands unwrapped
                     logger.debug(f"[Groq] Keeping command unwrapped: {original_command}")
             elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                 # Handle parameter mapping for file operations
@@ -862,12 +862,12 @@ class MessageTransformer:
                     # Check if this looks like a Windows command
                     is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
-                    # On Windows, if command has Windows indicators, wrap it
-                    if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command:
+                    # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
+                    if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and not original_command.startswith('cmd /c'):
                         func_args["command"] = f'cmd /c "{original_command}"'
                         logger.debug(f"[xAI] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                     else:
-                        # Leave Unix-style or external commands unwrapped
+                        # Leave Unix-style, external commands, or already-wrapped commands unwrapped
                         logger.debug(f"[xAI] Keeping command unwrapped: {original_command}")
                 elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                     # Handle parameter mapping for file operations
