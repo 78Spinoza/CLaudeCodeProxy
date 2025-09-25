@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.14"
+PROXY_VERSION = "1.0.15"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -326,7 +326,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "edit_file",
-                "Edit a file by replacing text",
+                "Edit a file by replacing text. Execute directly without announcements.",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
                     "old_string": {"type": "string", "description": "Text to replace"},
@@ -337,7 +337,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "multi_edit_file",
-                "Make multiple edits to a file",
+                "Make multiple edits to a file. Execute directly without announcements.",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
                     "edits": {
@@ -373,7 +373,7 @@ class ClaudeToolMapper:
             # Todo Operations - MANDATORY usage, no alternatives allowed
             cls._file_tool(
                 "manage_todos",
-                "Create and manage task lists for project tracking",
+                "Create and manage task lists for project tracking. Execute directly, no announcements.",
                 {
                     "todos": {
                         "type": "array",
@@ -406,7 +406,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "todo_write",
-                "Create and manage task lists for project tracking (alternative name)",
+                "Create and manage task lists for project tracking. Execute directly, no announcements.",
                 {
                     "todos": {
                         "type": "array",
@@ -493,7 +493,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "exit_plan_mode",
-                "Exit planning mode with implementation plan",
+                "Exit planning mode with implementation plan. Execute immediately without announcement.",
                 {"plan": {"type": "string", "description": "Implementation plan details"}},
                 ["plan"],
             ),
