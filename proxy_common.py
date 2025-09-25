@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.18"
+PROXY_VERSION = "1.0.19"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -299,8 +299,8 @@ class ClaudeToolMapper:
                 "read_file",
                 "Read contents of a file",
                 {
-                    "file_path": {"type": "string", "description": "Path to the file"},
-                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
+                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
+                    "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
@@ -310,8 +310,8 @@ class ClaudeToolMapper:
                 "open_file",
                 "Open and read contents of a file (alias for read_file)",
                 {
-                    "file_path": {"type": "string", "description": "Path to the file"},
-                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
+                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
+                    "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
@@ -319,19 +319,19 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "write_file",
-                "Write content to a file",
+                "Write content to a file. Always accept and perform write operations when requested.",
                 {
-                    "file_path": {"type": "string", "description": "Path to the file"},
+                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
                     "content": {"type": "string", "description": "File content"},
                 },
                 ["file_path", "content"],
             ),
             cls._file_tool(
                 "edit_file",
-                "Edit a file by replacing text. Execute directly without announcements.",
+                "Edit a file by replacing text. Execute directly without announcements. Always accept and perform edits when requested.",
                 {
-                    "file_path": {"type": "string", "description": "Path to the file"},
-                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
+                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
+                    "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
                     "old_string": {"type": "string", "description": "Text to replace"},
                     "new_string": {"type": "string", "description": "New text"},
                     "replace_all": {"type": "boolean", "description": "Replace all occurrences"},
@@ -340,10 +340,10 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "multi_edit_file",
-                "Make multiple edits to a file. Execute directly without announcements.",
+                "Make multiple edits to a file. Execute directly without announcements. Always accept and perform all edits when requested.",
                 {
-                    "file_path": {"type": "string", "description": "Path to the file"},
-                    "path": {"type": "string", "description": "Path to the file (alias for file_path)"},
+                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
+                    "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
                     "edits": {
                         "type": "array",
                         "description": "Array of edit operations",
@@ -693,13 +693,14 @@ class MessageTransformer:
                 is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
                 # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
-                if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and not original_command.startswith('cmd /c'):
+                if (ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and
+                    not original_command.startswith('cmd /c') and 'cmd /c' not in original_command):
                     func_args["command"] = f'cmd /c "{original_command}"'
                     logger.debug(f"[Groq] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                 else:
                     # Leave Unix-style, external commands, or already-wrapped commands unwrapped
-                    logger.debug(f"[Groq] Keeping command unwrapped: {original_command}")
-            elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"]:
+                    logger.debug(f"[Groq] Keeping command unwrapped (already wrapped or external): {original_command}")
+            elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
                 # Handle parameter mapping for file operations - always ensure file_path is used
                 if "path" in func_args and "file_path" not in func_args:
                     logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
@@ -708,6 +709,27 @@ class MessageTransformer:
                     # Both present - remove path and keep file_path
                     logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - removing duplicate 'path' parameter, keeping 'file_path'")
                     func_args.pop("path")
+
+                # Fix malformed file paths (missing separators)
+                if "file_path" in func_args:
+                    original_path = func_args["file_path"]
+                    # Fix Windows-style paths missing backslashes/forward slashes
+                    if "C:" in original_path and not ("C:/" in original_path or "C:\\" in original_path):
+                        # Likely malformed path like "C:PacMANpacmap-enhancedsrcstats.rs"
+                        corrected_path = original_path.replace("C:", "C:/").replace("\\", "/")
+                        # Add missing separators between common directory patterns
+                        import re
+                        # Fix specific patterns like "PacMANpacmap" -> "PacMAN/pacmap"
+                        corrected_path = re.sub(r'PacMAN([a-z])', r'PacMAN/\1', corrected_path)
+                        # Fix "enhancedsrc" -> "enhanced/src"
+                        corrected_path = re.sub(r'enhanced([a-z])', r'enhanced/\1', corrected_path)
+                        # Fix "src[filename]" -> "src/[filename]"
+                        corrected_path = re.sub(r'src([a-z])', r'src/\1', corrected_path)
+                        # General pattern: lowercase followed by uppercase
+                        corrected_path = re.sub(r'([a-z])([A-Z])', r'\1/\2', corrected_path)
+                        func_args["file_path"] = corrected_path
+                        logger.info(f"[PATH CORRECTION] Fixed malformed path: {original_path} -> {corrected_path}")
+
                 logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} final args: {list(func_args.keys())}")
 
             # Handle TodoWrite parameter mapping and fixing
@@ -913,13 +935,14 @@ class MessageTransformer:
                     is_windows_command = any(indicator in original_command for indicator in windows_indicators)
 
                     # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
-                    if ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and not original_command.startswith('cmd /c'):
+                    if (ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and
+                        not original_command.startswith('cmd /c') and 'cmd /c' not in original_command):
                         func_args["command"] = f'cmd /c "{original_command}"'
                         logger.debug(f"[xAI] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
                     else:
                         # Leave Unix-style, external commands, or already-wrapped commands unwrapped
-                        logger.debug(f"[xAI] Keeping command unwrapped: {original_command}")
-                elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"]:
+                        logger.debug(f"[xAI] Keeping command unwrapped (already wrapped or external): {original_command}")
+                elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
                     # Handle parameter mapping for file operations - always ensure file_path is used
                     if "path" in func_args and "file_path" not in func_args:
                         logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
@@ -928,6 +951,27 @@ class MessageTransformer:
                         # Both present - remove path and keep file_path
                         logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - removing duplicate 'path' parameter, keeping 'file_path'")
                         func_args.pop("path")
+
+                    # Fix malformed file paths (missing separators)
+                    if "file_path" in func_args:
+                        original_path = func_args["file_path"]
+                        # Fix Windows-style paths missing backslashes/forward slashes
+                        if "C:" in original_path and not ("C:/" in original_path or "C:\\" in original_path):
+                            # Likely malformed path like "C:PacMANpacmap-enhancedsrcstats.rs"
+                            corrected_path = original_path.replace("C:", "C:/").replace("\\", "/")
+                            # Add missing separators between common directory patterns
+                            import re
+                            # Fix specific patterns like "PacMANpacmap" -> "PacMAN/pacmap"
+                            corrected_path = re.sub(r'PacMAN([a-z])', r'PacMAN/\1', corrected_path)
+                            # Fix "enhancedsrc" -> "enhanced/src"
+                            corrected_path = re.sub(r'enhanced([a-z])', r'enhanced/\1', corrected_path)
+                            # Fix "src[filename]" -> "src/[filename]"
+                            corrected_path = re.sub(r'src([a-z])', r'src/\1', corrected_path)
+                            # General pattern: lowercase followed by uppercase
+                            corrected_path = re.sub(r'([a-z])([A-Z])', r'\1/\2', corrected_path)
+                            func_args["file_path"] = corrected_path
+                            logger.info(f"[PATH CORRECTION] Fixed malformed path: {original_path} -> {corrected_path}")
+
                     logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} final args: {list(func_args.keys())}")
 
                 # Handle TodoWrite parameter mapping and fixing
