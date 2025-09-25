@@ -689,7 +689,7 @@ class MessageTransformer:
                 base_command = original_command.split()[0].lower() if original_command else ""
 
                 # Only wrap if it's a Windows internal command
-                if get_current_os() == "windows" and base_command in windows_internal_commands:
+                if ClaudeToolMapper.get_current_os() == "windows" and base_command in windows_internal_commands:
                     func_args["command"] = f'cmd /c "{original_command}"'
                     logger.debug(f"[Groq] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
                 else:
@@ -861,7 +861,7 @@ class MessageTransformer:
                     base_command = original_command.split()[0].lower() if original_command else ""
 
                     # Only wrap if it's a Windows internal command
-                    if get_current_os() == "windows" and base_command in windows_internal_commands:
+                    if ClaudeToolMapper.get_current_os() == "windows" and base_command in windows_internal_commands:
                         func_args["command"] = f'cmd /c "{original_command}"'
                         logger.debug(f"[xAI] Wrapped Windows internal command: {original_command} -> cmd /c \"{original_command}\"")
                     else:
