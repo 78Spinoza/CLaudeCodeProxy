@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.8
+# Claude Proxy Architecture Overview v1.0.9
 
 ## Purpose
 
@@ -123,6 +123,14 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 These commands are processed in a background thread (`_console_input_handler`).
 
 ---
+
+## v1.0.9 Architecture Improvements
+
+**Windows Compatibility & Debugging:**
+- **Unicode Character Removal**: Eliminated all Unicode checkmarks preventing Windows encoding errors
+- **Enhanced Debugging**: Added comprehensive logging for tool schema generation and parameter mapping
+- **Startup Reliability**: Adapters now initialize successfully on all Windows systems
+- **Debug Visibility**: Tool validation and parameter mapping operations now logged for troubleshooting
 
 ## v1.0.8 Architecture Improvements
 
