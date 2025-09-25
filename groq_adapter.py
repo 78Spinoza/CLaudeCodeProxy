@@ -123,7 +123,12 @@ class GroqAdapter:
 
         # Add tools for models that support them
         if "tools" in data and supports_tools:
-            openai_request["tools"] = self.tool_mapper.generate_ultra_simple_tools()
+            tools_schema = self.tool_mapper.generate_ultra_simple_tools()
+            # Debug logging to see what schema is being sent
+            for tool in tools_schema:
+                if tool["function"]["name"] == "edit_file":
+                    logger.debug(f"[GROQ SCHEMA] edit_file schema: {tool['function']['parameters']}")
+            openai_request["tools"] = tools_schema
             openai_request["tool_choice"] = "auto"
 
         # Send request to GroqCloud

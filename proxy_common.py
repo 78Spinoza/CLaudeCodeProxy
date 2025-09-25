@@ -697,7 +697,9 @@ class MessageTransformer:
                     logger.debug(f"[Groq] Keeping external command unwrapped: {original_command}")
             elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                 # Handle parameter mapping for file operations
+                logger.debug(f"[GROQ PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
                 func_args["file_path"] = func_args.pop("path")
+                logger.debug(f"[GROQ PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
 
             # Special formatting for ExitPlanMode - minimal processing
             if func_name == "exit_plan_mode" and "plan" in func_args:
@@ -869,7 +871,9 @@ class MessageTransformer:
                         logger.debug(f"[xAI] Keeping external command unwrapped: {original_command}")
                 elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                     # Handle parameter mapping for file operations
+                    logger.debug(f"[XAI PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
                     func_args["file_path"] = func_args.pop("path")
+                    logger.debug(f"[XAI PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
 
                 # Special formatting for ExitPlanMode - minimal processing
                 if func_name == "exit_plan_mode" and "plan" in func_args:
