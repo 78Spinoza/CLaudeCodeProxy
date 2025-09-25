@@ -10,7 +10,7 @@
 <tr>
 <td align="center" width="50%">
 <h3>🖥️ Windows 64-bit (Recommended)</h3>
-<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.9/Claude%20Proxy%20Installer_1.0.9_x64-setup.exe">
+<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.13/Claude%20Proxy%20Installer_1.0.13_x64-setup.exe">
 <img src="https://img.shields.io/badge/DOWNLOAD%20x64-2.5MB-brightgreen?style=for-the-badge&logo=windows&logoColor=white" alt="Download x64"/>
 </a>
 <br><br>
@@ -19,7 +19,7 @@ Windows 10/11 - 64-bit
 </td>
 <td align="center" width="50%">
 <h3>🖥️ Windows 32-bit (Legacy)</h3>
-<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.9/Claude%20Proxy%20Installer_1.0.9_x86-setup.exe">
+<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.13/Claude%20Proxy%20Installer_1.0.13_x86-setup.exe">
 <img src="https://img.shields.io/badge/DOWNLOAD%20x86-2.3MB-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Download x86"/>
 </a>
 <br><br>
@@ -94,11 +94,11 @@ That's why we created a comprehensive Windows installer that eliminates this com
 📦 **Download the Smart Installer** ([see download section above](#-download-setup-windows)):
 
 <div align="center">
-<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.9/Claude%20Proxy%20Installer_1.0.9_x64-setup.exe">
+<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.13/Claude%20Proxy%20Installer_1.0.13_x64-setup.exe">
 <img src="https://img.shields.io/badge/DOWNLOAD%20x64-2.5MB-brightgreen?style=for-the-badge&logo=windows&logoColor=white" alt="Download x64"/>
 </a>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.9/Claude%20Proxy%20Installer_1.0.9_x86-setup.exe">
+<a href="https://github.com/78Spinoza/CLaudeCodeProxy/releases/download/v1.0.13/Claude%20Proxy%20Installer_1.0.13_x86-setup.exe">
 <img src="https://img.shields.io/badge/DOWNLOAD%20x86-2.3MB-blue?style=for-the-badge&logo=windows&logoColor=white" alt="Download x86"/>
 </a>
 </div>

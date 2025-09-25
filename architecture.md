@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.9
+# Claude Proxy Architecture Overview v1.0.13
 
 ## Purpose
 
@@ -123,6 +123,36 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 These commands are processed in a background thread (`_console_input_handler`).
 
 ---
+
+## v1.0.13 Architecture Improvements
+
+**Complete Tool Validation Fix:**
+- **TodoWrite Parameter Mapping**: Fixed tasks→todos, description→content parameter translation
+- **Null Parameter Filtering**: Removes null values causing GroqCloud schema validation failures
+- **Tool Schema Compliance**: All Claude Code 2025 tools now work correctly
+- **Parameter Auto-Fix**: Automatically corrects malformed tool calls from AI models
+
+## v1.0.12 Architecture Improvements
+
+**TodoWrite Schema Compliance:**
+- **Parameter Mapping**: Fixed tasks→todos, description→content field mapping
+- **Structure Validation**: Auto-generates missing activeForm fields
+- **Format Handling**: Supports both string arrays and object arrays
+- **Null Filtering**: Removes null parameters preventing validation errors
+
+## v1.0.11 Architecture Improvements
+
+**Parameter Validation Enhancement:**
+- **Null Value Filtering**: Removes null limit/offset parameters from file operations
+- **Schema Compliance**: Resolves GroqCloud 400 errors for optional parameters
+- **File Operation Stability**: Read, Write, Edit tools work without validation failures
+
+## v1.0.10 Architecture Improvements
+
+**Command Execution Stability:**
+- **Double-Wrap Prevention**: Prevents cmd /c "cmd /c "command"" nesting
+- **Loop Prevention**: Resolves infinite command execution loops
+- **Bash Tool Reliability**: Commands execute correctly without hanging
 
 ## v1.0.9 Architecture Improvements
 
