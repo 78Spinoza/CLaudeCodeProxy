@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.13"
+PROXY_VERSION = "1.0.14"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -697,9 +697,11 @@ class MessageTransformer:
                     logger.debug(f"[Groq] Keeping command unwrapped: {original_command}")
             elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                 # Handle parameter mapping for file operations
-                logger.debug(f"[GROQ PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                logger.info(f"[GROQ PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                logger.info(f"[GROQ PARAM MAP CRITICAL] Original args: {list(func_args.keys())}")
                 func_args["file_path"] = func_args.pop("path")
-                logger.debug(f"[GROQ PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
+                logger.info(f"[GROQ PARAM MAP CRITICAL] After mapping: {list(func_args.keys())}")
+                logger.info(f"[GROQ PARAM MAP CRITICAL] Final args: {func_args}")
 
             # Handle TodoWrite parameter mapping and fixing
             if func_name in ["todo_write", "manage_todos"]:
@@ -907,9 +909,11 @@ class MessageTransformer:
                         logger.debug(f"[xAI] Keeping command unwrapped: {original_command}")
                 elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file"] and "path" in func_args and "file_path" not in func_args:
                     # Handle parameter mapping for file operations
-                    logger.debug(f"[XAI PARAM MAP] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                    logger.info(f"[XAI PARAM MAP CRITICAL] {func_name} - mapping 'path' to 'file_path': {func_args['path']}")
+                    logger.info(f"[XAI PARAM MAP CRITICAL] Original args: {list(func_args.keys())}")
                     func_args["file_path"] = func_args.pop("path")
-                    logger.debug(f"[XAI PARAM MAP] {func_name} - after mapping: {list(func_args.keys())}")
+                    logger.info(f"[XAI PARAM MAP CRITICAL] After mapping: {list(func_args.keys())}")
+                    logger.info(f"[XAI PARAM MAP CRITICAL] Final args: {func_args}")
 
                 # Handle TodoWrite parameter mapping and fixing
                 if func_name in ["todo_write", "manage_todos"]:
