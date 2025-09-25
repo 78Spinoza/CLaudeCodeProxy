@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.7
+# Claude Proxy Architecture Overview v1.0.8
 
 ## Purpose
 
@@ -123,6 +123,14 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 These commands are processed in a background thread (`_console_input_handler`).
 
 ---
+
+## v1.0.8 Architecture Improvements
+
+**Critical Tool Parameter Fix:**
+- **Fixed Edit Tool Parameters**: Resolved parameter mapping for edit_file and multi_edit_file tools
+- **Path-to-FilePath Mapping**: Models calling with 'path' parameter now correctly mapped to 'file_path'
+- **Tool Validation Success**: Eliminates GroqCloud 400 errors about missing file_path properties
+- **File Operations Working**: Edit, MultiEdit, Read, and Write tools now work correctly
 
 ## v1.0.7 Architecture Improvements
 
