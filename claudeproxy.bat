@@ -25,6 +25,7 @@ set PROVIDER=
 if "%~1"=="setup" set FORCE_SETUP=1
 if "%~1"=="xai" set PROVIDER=xai
 if "%~1"=="groq" set PROVIDER=groq
+if "%~1"=="baseten" set PROVIDER=baseten
 
 REM --- Python check ---
 echo [CHECK] Looking for Python 3.8 or higher
@@ -59,6 +60,7 @@ if %errorlevel% neq 0 (
 REM Refresh env vars from registry
 for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v XAI_API_KEY 2^>nul') do set "XAI_API_KEY=%%b"
 for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v GROQ_API_KEY 2^>nul') do set "GROQ_API_KEY=%%b"
+for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v BASETEN_API_KEY 2^>nul') do set "BASETEN_API_KEY=%%b"
 for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v CLAUDEPROXY_CONFIGURED 2^>nul') do set "CLAUDEPROXY_CONFIGURED=%%b"
 
 REM Setup check
@@ -90,10 +92,12 @@ if %SETUP_COMPLETE%==0 (
 REM --- Provider selection ---
 set XAI_VALID=0
 set GROQ_VALID=0
+set BASETEN_VALID=0
 if defined XAI_API_KEY if not "%XAI_API_KEY%"=="NA" set XAI_VALID=1
 if defined GROQ_API_KEY if not "%GROQ_API_KEY%"=="NA" set GROQ_VALID=1
+if defined BASETEN_API_KEY if not "%BASETEN_API_KEY%"=="NA" set BASETEN_VALID=1
 
-if %XAI_VALID%==0 if %GROQ_VALID%==0 (
+if %XAI_VALID%==0 if %GROQ_VALID%==0 if %BASETEN_VALID%==0 (
     echo [ERROR] No valid API keys configured!
     echo Run: claudeproxy setup
     pause
