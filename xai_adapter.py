@@ -99,6 +99,9 @@ class XAIAdapter:
         self.tool_mapper = ClaudeToolMapper()
         self.message_transformer = MessageTransformer()
 
+        # Log OS detection for debugging
+        self.tool_mapper.log_os_detection("xAI")
+
     def authenticate(self) -> bool:
         """Validate the API key is present."""
         return self.api_client.authenticate()

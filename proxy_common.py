@@ -8,6 +8,7 @@ Provides:
 
 import json
 import logging
+import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -36,13 +37,28 @@ def _format_plan(plan_data: Any) -> str:
     """Format plan data into readable markdown for ExitPlanMode.
     
     Handles various plan formats:
-    - String: Return as-is
+    - String: Try parsing as JSON first, if fails return as-is with special markers
     - Dict with 'steps' array: Format as numbered list
     - Dict with other structure: Format as readable text
     - List: Format as numbered steps
     """
+    # If it's a string, try to parse as JSON first
     if isinstance(plan_data, str):
-        return plan_data
+        # Fix HTML entity encoding issues first
+        plan_data = plan_data.replace("&amp;&amp;", "&&").replace("&lt;", "<").replace("&gt;", ">")
+        
+        # Try to parse as JSON in case it's a JSON string
+        try:
+            parsed_data = json.loads(plan_data)
+            # Recursively call _format_plan with the parsed data
+            return _format_plan(parsed_data)
+        except (json.JSONDecodeError, TypeError):
+            # If JSON parsing fails, it's already formatted markdown
+            # Add special markers to prevent JSON wrapping in UI
+            if plan_data.startswith("##") or plan_data.startswith("#"):
+                # It's already markdown, add formatting hints
+                return f"\n\n{plan_data}\n\n"
+            return plan_data
     
     if isinstance(plan_data, dict):
         if "steps" in plan_data:
@@ -51,7 +67,7 @@ def _format_plan(plan_data: Any) -> str:
                 formatted_steps = []
                 for i, step in enumerate(steps, 1):
                     formatted_steps.append(f"{i}. {step}")
-                return "\n".join(formatted_steps)
+                return "\n\n" + "\n".join(formatted_steps) + "\n\n"
         else:
             # Generic dict formatting
             lines = []
@@ -62,13 +78,13 @@ def _format_plan(plan_data: Any) -> str:
                         lines.append(f"- {item}")
                 else:
                     lines.append(f"**{key.title()}:** {value}")
-            return "\n".join(lines)
+            return "\n\n" + "\n".join(lines) + "\n\n"
     
     if isinstance(plan_data, list):
         formatted_steps = []
         for i, step in enumerate(plan_data, 1):
             formatted_steps.append(f"{i}. {step}")
-        return "\n".join(formatted_steps)
+        return "\n\n" + "\n".join(formatted_steps) + "\n\n"
     
     # Fallback: convert to string
     return str(plan_data)
@@ -111,6 +127,92 @@ class ClaudeToolMapper:
     The mapping covers both the plain tool names used by the providers and the
     ``functions/``‑prefixed variants that some back‑ends emit.
     """
+
+    @classmethod
+    def get_current_os(cls) -> str:
+        """Detect the current operating system."""
+        system = platform.system().lower()
+        if system == "windows":
+            return "windows"
+        elif system in ["linux", "darwin"]:  # darwin = macOS
+            return "unix"
+        else:
+            return "unix"  # Default to unix for unknown systems
+
+    @classmethod
+    def get_os_specific_examples(cls) -> Dict[str, Any]:
+        """Get OS-specific command examples and descriptions."""
+        current_os = cls.get_current_os()
+
+        if current_os == "windows":
+            return {
+                "primary_tool": "run_cmd",
+                "primary_desc": f"Execute Windows CMD commands (RECOMMENDED for {platform.system()})",
+                "primary_examples": ["dir", "cd /d C:\\project", "echo %CD%", "type file.txt"],
+                "secondary_tool": "run_bash",
+                "secondary_desc": "Execute cross-platform commands (converted automatically)",
+                "secondary_examples": ["ls", "cd project", "pwd", "cat file.txt"],
+                "current_system": platform.system(),
+                "shell_info": "Commands run in Windows Command Prompt (cmd.exe)"
+            }
+        else:
+            return {
+                "primary_tool": "run_bash",
+                "primary_desc": f"Execute shell commands (RECOMMENDED for {platform.system()})",
+                "primary_examples": ["ls", "cd project", "pwd", "cat file.txt"],
+                "secondary_tool": "run_cmd",
+                "secondary_desc": "Execute Windows-style commands (not recommended on this system)",
+                "secondary_examples": ["dir", "cd /d C:\\project", "echo %CD%"],
+                "current_system": platform.system(),
+                "shell_info": "Commands run in bash/sh shell"
+            }
+
+    @classmethod
+    def _generate_os_aware_command_tools(cls) -> List[Dict[str, Any]]:
+        """Generate OS-aware command tool descriptions."""
+        os_info = cls.get_os_specific_examples()
+
+        # Primary tool (recommended for current OS)
+        primary_tool = cls._file_tool(
+            os_info["primary_tool"],
+            f"{os_info['primary_desc']} - CURRENT SYSTEM: {os_info['current_system']}. {os_info['shell_info']}. Examples: {', '.join(os_info['primary_examples'][:3])}",
+            {
+                "command": {
+                    "type": "string",
+                    "description": f"Command to execute using {os_info['current_system']} syntax. Examples: {', '.join(os_info['primary_examples'])}"
+                },
+                "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
+                "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
+            },
+            ["command"],
+        )
+
+        # Secondary tool (alternative)
+        secondary_tool = cls._file_tool(
+            os_info["secondary_tool"],
+            f"{os_info['secondary_desc']}. Examples: {', '.join(os_info['secondary_examples'][:3])}",
+            {
+                "command": {
+                    "type": "string",
+                    "description": f"Command to execute. Examples: {', '.join(os_info['secondary_examples'])}"
+                },
+                "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
+                "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
+            },
+            ["command"],
+        )
+
+        return [primary_tool, secondary_tool]
+
+    @classmethod
+    def log_os_detection(cls, provider_name: str):
+        """Log OS detection information for debugging."""
+        os_info = cls.get_os_specific_examples()
+        logger.info(f"[{provider_name}] OS Detection - System: {os_info['current_system']}")
+        logger.info(f"[{provider_name}] Primary tool: {os_info['primary_tool']} ({os_info['primary_desc']})")
+        logger.info(f"[{provider_name}] Shell environment: {os_info['shell_info']}")
+        print(f"[{provider_name}] ✓ OS-aware tool registration: {os_info['current_system']} detected")
+        print(f"[{provider_name}] ✓ Recommended command tool: {os_info['primary_tool']}")
 
     # Tool name mappings from provider to Claude Code
     TOOL_MAPPING = {
@@ -194,22 +296,20 @@ class ClaudeToolMapper:
                 "Read contents of a file",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
-                    "path": {"type": "string", "description": "Path to the file (alternative)"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
-                [],
+                ["file_path"],
             ),
             cls._file_tool(
                 "open_file",
                 "Open and read contents of a file (alias for read_file)",
                 {
-                    "path": {"type": "string", "description": "Path to the file"},
-                    "file_path": {"type": "string", "description": "Path to the file (alternative)"},
+                    "file_path": {"type": "string", "description": "Path to the file"},
                     "limit": {"type": "integer", "description": "Lines to read (optional)"},
                     "offset": {"type": "integer", "description": "Start line (optional)"},
                 },
-                [],
+                ["file_path"],
             ),
             cls._file_tool(
                 "write_file",
@@ -233,7 +333,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "multi_edit_file",
-                "Make multiple edits to one file",
+                "Make multiple edits to one file. Each edit in the edits array should have 'old_string' and 'new_string' fields. Do NOT include 'replace_all' parameter - it's not supported.",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
                     "edits": {
@@ -244,26 +344,8 @@ class ClaudeToolMapper:
                 },
                 ["file_path", "edits"],
             ),
-            # System Operations
-            cls._file_tool(
-                "run_bash",
-                "Execute shell commands on Windows system. IMPORTANT: Use Windows syntax - forward slashes for paths, 'cd /d' for directory changes, %CD% for current directory, && for command chaining. Examples: 'cd /d C:\\UMAP && echo Current: %CD%', 'dir', 'type filename.txt'.",
-                {
-                    "command": {"type": "string", "description": "Windows shell command using Windows syntax (e.g., 'cd /d C:\\UMAP && dir', 'echo %CD%', 'type file.txt')"},
-                    "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
-                    "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
-                },
-                ["command"],
-            ),
-            cls._file_tool(
-                "run_cmd",
-                "Execute Windows Command Prompt commands for native Windows operations. Use Windows path syntax with backslashes, %CD% for current directory, && for command chaining.",
-                {
-                    "command": {"type": "string", "description": "The Windows command to execute (e.g., 'cd /d C:\\UMAP && dir', 'echo %CD%', 'type file.txt')"},
-                    "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
-                },
-                ["command"],
-            ),
+            # System Operations with OS-aware descriptions
+            *cls._generate_os_aware_command_tools(),
             # Search Operations
             cls._file_tool(
                 "search_files",
@@ -284,49 +366,69 @@ class ClaudeToolMapper:
                 },
                 ["pattern"],
             ),
-            # Todo Operations - Pure translation, no special handling
+            # Todo Operations - MANDATORY usage, no alternatives allowed
             cls._file_tool(
                 "manage_todos",
-                "MANDATORY: Create and manage task lists for structured development workflow - USE VERY FREQUENTLY",
+                "Create and manage task lists for project tracking",
                 {
                     "todos": {
                         "type": "array",
-                        "description": "Complete todo list (replaces entire list each time)",
+                        "description": "The updated todo list",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "content": {"type": "string", "description": "Task description in imperative form"},
-                                "status": {"type": "string", "enum": ["pending", "in_progress", "completed"], "description": "Current task status"},
-                                "activeForm": {"type": "string", "description": "Present continuous form for in_progress tasks"},
-                                "id": {"type": "string", "description": "Unique task identifier"},
-                                "priority": {"type": "string", "enum": ["high", "medium", "low"], "description": "Task priority (optional, defaults to medium)"}
+                                "content": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Task description (imperative form)"
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["pending", "in_progress", "completed"],
+                                    "description": "Task status"
+                                },
+                                "activeForm": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Present continuous form of task"
+                                }
                             },
                             "required": ["content", "status", "activeForm"],
                             "additionalProperties": False
-                        },
+                        }
                     }
                 },
                 ["todos"],
             ),
             cls._file_tool(
                 "todo_write",
-                "MANDATORY: Write todo items for task tracking - USE VERY FREQUENTLY",
+                "Create and manage task lists for project tracking (alternative name)",
                 {
                     "todos": {
                         "type": "array",
-                        "description": "Complete todo list (replaces entire list each time)",
+                        "description": "The updated todo list",
                         "items": {
                             "type": "object",
                             "properties": {
-                                "content": {"type": "string", "description": "Task description in imperative form"},
-                                "status": {"type": "string", "enum": ["pending", "in_progress", "completed"], "description": "Current task status"},
-                                "activeForm": {"type": "string", "description": "Present continuous form for in_progress tasks"},
-                                "id": {"type": "string", "description": "Unique task identifier"},
-                                "priority": {"type": "string", "enum": ["high", "medium", "low"], "description": "Task priority (optional, defaults to medium)"}
+                                "content": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Task description (imperative form)"
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "enum": ["pending", "in_progress", "completed"],
+                                    "description": "Task status"
+                                },
+                                "activeForm": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "Present continuous form of task"
+                                }
                             },
                             "required": ["content", "status", "activeForm"],
                             "additionalProperties": False
-                        },
+                        }
                     }
                 },
                 ["todos"],
@@ -387,7 +489,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "exit_plan_mode",
-                "Exit planning mode and start execution",
+                "MANDATORY: Exit planning mode and start executing tools immediately. Call this tool after creating any plan to transition from planning to execution. The plan parameter should contain your complete implementation plan.",
                 {"plan": {"type": "string", "description": "The plan to execute"}},
                 ["plan"],
             ),
@@ -568,35 +670,40 @@ class MessageTransformer:
             func_name = tool_call["function"]["name"]
             func_args = json.loads(tool_call["function"]["arguments"])
             claude_tool_name = ClaudeToolMapper.TOOL_MAPPING.get(func_name, func_name)
-            
-            # Special formatting for ExitPlanMode and TodoWrite
+
+            # Handle command environment detection and preprocessing
+            if func_name == "run_cmd" and "command" in func_args:
+                # Windows CMD commands - wrap with cmd /c for proper execution
+                original_command = func_args.get("command", "")
+                func_args["command"] = f'cmd /c "{original_command}"'
+                logger.debug(f"[Groq] Wrapped Windows command: {original_command} -> cmd /c \"{original_command}\"")
+            elif func_name in ["read_file", "open_file"] and "path" in func_args and "file_path" not in func_args:
+                # Handle parameter mapping for read_file variants
+                func_args["file_path"] = func_args.pop("path")
+
+            # Special formatting for ExitPlanMode - minimal processing
             if func_name == "exit_plan_mode" and "plan" in func_args:
                 plan_raw = func_args["plan"]
-                # Try to parse as JSON if it's a string
+                logger.debug(f"[Groq] ExitPlanMode plan type: {type(plan_raw)}")
+                # Pass plan through with minimal processing - only fix common encoding issues
                 if isinstance(plan_raw, str):
-                    try:
-                        plan_parsed = json.loads(plan_raw)
-                        func_args["plan"] = _format_plan(plan_parsed)
-                    except json.JSONDecodeError:
-                        func_args["plan"] = _format_plan(plan_raw)
-                else:
-                    func_args["plan"] = _format_plan(plan_raw)
+                    # Only fix the most common HTML entities that definitely shouldn't be in plans
+                    plan_raw = plan_raw.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                func_args["plan"] = plan_raw
             
-            # Special formatting for TodoWrite
+            # Special formatting for TodoWrite - ONLY preserve Claude Code fields
             elif func_name in ["manage_todos", "todo_write"] and "todos" in func_args:
                 todos = func_args["todos"]
                 if isinstance(todos, list):
-                    # Ensure proper todo format and add formatted display
+                    # Ensure proper todo format - ONLY the 3 required Claude Code fields
                     formatted_todos = []
                     for todo in todos:
                         if isinstance(todo, dict):
-                            # Ensure required fields exist
+                            # Only keep the 3 required Claude Code fields
                             formatted_todo = {
                                 "content": todo.get("content", ""),
                                 "status": todo.get("status", "pending"),
-                                "activeForm": todo.get("activeForm", todo.get("content", "")),
-                                "id": todo.get("id", f"task_{len(formatted_todos)+1}"),
-                                "priority": todo.get("priority", "medium")
+                                "activeForm": todo.get("activeForm", todo.get("content", ""))
                             }
                             formatted_todos.append(formatted_todo)
                     func_args["todos"] = formatted_todos
@@ -721,35 +828,40 @@ class MessageTransformer:
                     }
                 # Normal tool mapping with special handling for plan formatting
                 claude_tool_name = tool_mapping.get(func_name, func_name)
-                
-                # Special formatting for ExitPlanMode and TodoWrite
+
+                # Handle command environment detection and preprocessing
+                if func_name == "run_cmd" and "command" in func_args:
+                    # Windows CMD commands - wrap with cmd /c for proper execution
+                    original_command = func_args.get("command", "")
+                    func_args["command"] = f'cmd /c "{original_command}"'
+                    logger.debug(f"[xAI] Wrapped Windows command: {original_command} -> cmd /c \"{original_command}\"")
+                elif func_name in ["read_file", "open_file"] and "path" in func_args and "file_path" not in func_args:
+                    # Handle parameter mapping for read_file variants
+                    func_args["file_path"] = func_args.pop("path")
+
+                # Special formatting for ExitPlanMode - minimal processing
                 if func_name == "exit_plan_mode" and "plan" in func_args:
                     plan_raw = func_args["plan"]
-                    # Try to parse as JSON if it's a string
+                    logger.debug(f"[xAI] ExitPlanMode plan type: {type(plan_raw)}")
+                    # Pass plan through with minimal processing - only fix common encoding issues
                     if isinstance(plan_raw, str):
-                        try:
-                            plan_parsed = json.loads(plan_raw)
-                            func_args["plan"] = _format_plan(plan_parsed)
-                        except json.JSONDecodeError:
-                            func_args["plan"] = _format_plan(plan_raw)
-                    else:
-                        func_args["plan"] = _format_plan(plan_raw)
+                        # Only fix the most common HTML entities that definitely shouldn't be in plans
+                        plan_raw = plan_raw.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+                    func_args["plan"] = plan_raw
                 
-                # Special formatting for TodoWrite
+                # Special formatting for TodoWrite - ONLY preserve Claude Code fields
                 elif func_name in ["manage_todos", "todo_write"] and "todos" in func_args:
                     todos = func_args["todos"]
                     if isinstance(todos, list):
-                        # Ensure proper todo format
+                        # Ensure proper todo format - ONLY the 3 required Claude Code fields
                         formatted_todos = []
                         for todo in todos:
                             if isinstance(todo, dict):
-                                # Ensure required fields exist
+                                # Only keep the 3 required Claude Code fields
                                 formatted_todo = {
                                     "content": todo.get("content", ""),
                                     "status": todo.get("status", "pending"),
-                                    "activeForm": todo.get("activeForm", todo.get("content", "")),
-                                    "id": todo.get("id", f"task_{len(formatted_todos)+1}"),
-                                    "priority": todo.get("priority", "medium")
+                                    "activeForm": todo.get("activeForm", todo.get("content", ""))
                                 }
                                 formatted_todos.append(formatted_todo)
                         func_args["todos"] = formatted_todos

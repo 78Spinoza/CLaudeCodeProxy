@@ -203,11 +203,9 @@ fn add_to_system_path(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(target_os = "windows")]
     {
-        // Add to user PATH
-        let path_str = path.to_str().ok_or("Invalid path")?;
-        std::process::Command::new("setx")
-            .args(["PATH", &format!("%PATH%;{}", path_str)])
-            .status()?;
+        // CRITICAL: Use the safe add_to_path function from installer.rs to avoid truncation
+        // Never use setx directly on PATH as it truncates at 1024 characters
+        crate::installer::add_to_path(path)?;
     }
 
     #[cfg(not(target_os = "windows"))]

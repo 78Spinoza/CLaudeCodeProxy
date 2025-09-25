@@ -167,18 +167,26 @@ pub async fn install_proxy_scripts() -> Result<(), Box<dyn std::error::Error>> {
     let install_dir = get_install_directory()?;
     println!("Install directory: {:?}", install_dir);
 
-    // Create minimal proxy scripts directly (no external dependencies that could hang)
+    // Embed actual proxy files from main directory using include_str!
     let scripts = vec![
-        ("xai_claude_proxy_enhanced.py", "# xAI Claude Proxy\nprint('xAI proxy script installed')"),
-        ("groq_claude_proxy_enhanced.py", "# GroqCloud Claude Proxy\nprint('GroqCloud proxy script installed')"),
-        ("claudeproxysetup.py", "# Claude Proxy Setup\nprint('Setup script installed')"),
+        ("xai_claude_proxy_enhanced.py", include_str!("../../../xai_claude_proxy_enhanced.py")),
+        ("groq_claude_proxy_enhanced.py", include_str!("../../../groq_claude_proxy_enhanced.py")),
+        ("proxy_core.py", include_str!("../../../proxy_core.py")),
+        ("proxy_common.py", include_str!("../../../proxy_common.py")),
+        ("xai_adapter.py", include_str!("../../../xai_adapter.py")),
+        ("groq_adapter.py", include_str!("../../../groq_adapter.py")),
+        ("claudeproxy.bat", include_str!("../../../claudeproxy.bat")),
+        ("claudeproxy.sh", include_str!("../../../claudeproxy.sh")),
+        ("start_xai_proxy.bat", include_str!("../../../start_xai_proxy.bat")),
+        ("start_groq_proxy.bat", include_str!("../../../start_groq_proxy.bat")),
+        ("claudeproxysetup.py", include_str!("../../../claudeproxysetup.py")),
     ];
 
-    println!("Creating {} proxy scripts...", scripts.len());
+    println!("Installing {} proxy scripts from embedded sources...", scripts.len());
 
     for (i, (filename, content)) in scripts.iter().enumerate() {
         let dest_path = install_dir.join(filename);
-        println!("[{}/{}] Writing {}", i+1, scripts.len(), filename);
+        println!("[{}/{}] Writing {} ({} bytes)", i+1, scripts.len(), filename, content.len());
 
         match fs::write(&dest_path, content) {
             Ok(_) => println!("✓ Successfully wrote {}", filename),
@@ -236,14 +244,15 @@ pub async fn create_shortcuts() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
+        let install_dir = get_install_directory()?;
         let shortcuts = vec![
-            ("xAI Claude Proxy.bat", "@echo off\necho xAI Claude Proxy shortcut created\npause"),
-            ("GroqCloud Claude Proxy.bat", "@echo off\necho GroqCloud Claude Proxy shortcut created\npause"),
+            ("xAI Claude Proxy.bat", format!("@echo off\ncd /d \"{}\"\ncall start_xai_proxy.bat", install_dir.display())),
+            ("GroqCloud Claude Proxy.bat", format!("@echo off\ncd /d \"{}\"\ncall start_groq_proxy.bat", install_dir.display())),
         ];
 
         for (filename, content) in shortcuts {
             let shortcut_path = desktop.join(filename);
-            match fs::write(&shortcut_path, content) {
+            match fs::write(&shortcut_path, &content) {
                 Ok(_) => println!("✓ Created shortcut: {:?}", shortcut_path),
                 Err(e) => println!("⚠ Failed to create shortcut {}: {}", filename, e),
             }
@@ -351,7 +360,7 @@ fn is_in_path(path: &Path) -> Result<bool, Box<dyn std::error::Error>> {
     }
 }
 
-fn add_to_path(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn add_to_path(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "windows")]
     {
         let path_str = path.to_str().ok_or("Invalid path")?;

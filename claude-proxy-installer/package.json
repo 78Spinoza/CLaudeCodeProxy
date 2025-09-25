@@ -1,7 +1,7 @@
 {
   "name": "claude-proxy-installer",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Smart installer for Claude Code Proxy with auto-dependency detection",
   "type": "module",
   "scripts": {
