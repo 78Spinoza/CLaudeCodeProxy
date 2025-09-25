@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GroqCloud Claude Code Proxy - ENHANCED VERSION v1.0.3
+GroqCloud Claude Code Proxy - ENHANCED VERSION v1.0.6
 =====================================================
 
 Clean class-based architecture for GroqCloud Claude Code integration.

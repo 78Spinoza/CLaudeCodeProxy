@@ -1,6 +1,6 @@
 # proxy_common.py
 """
-Shared utilities for Claude proxy implementations (Groq and xAI).
+Shared utilities for Claude proxy implementations (Groq and xAI) v1.0.6
 Provides:
 - ClaudeToolMapper: mapping of tool names to Claude tool names and ultra‑simple tool schema generation.
 - MessageTransformer: functions for converting between Anthropic, OpenAI (Groq), and xAI message formats.
@@ -10,6 +10,10 @@ import json
 import logging
 import platform
 from typing import Any, Dict, List, Optional, Tuple
+
+# Version information
+PROXY_VERSION = "1.0.6"
+PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
 

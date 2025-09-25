@@ -13,7 +13,7 @@ import time
 from flask import jsonify, Response, stream_with_context
 
 # Import shared utilities
-from proxy_common import ClaudeToolMapper, MessageTransformer, BaseApiClient
+from proxy_common import ClaudeToolMapper, MessageTransformer, BaseApiClient, PROXY_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,8 @@ class XAIAdapter:
         self.tool_mapper = ClaudeToolMapper()
         self.message_transformer = MessageTransformer()
 
-        # Log OS detection for debugging
+        # Log version and OS detection for debugging
+        print(f"[xAI] ✓ Claude Code Proxy v{PROXY_VERSION}")
         self.tool_mapper.log_os_detection("xAI")
 
     def authenticate(self) -> bool:

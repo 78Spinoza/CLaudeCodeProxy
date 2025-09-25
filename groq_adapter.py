@@ -13,7 +13,7 @@ import time
 from flask import jsonify, Response, stream_with_context
 
 # Import shared utilities
-from proxy_common import ClaudeToolMapper, MessageTransformer, BaseApiClient, BaseModelSelector
+from proxy_common import ClaudeToolMapper, MessageTransformer, BaseApiClient, BaseModelSelector, PROXY_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,8 @@ class GroqAdapter:
         self.tool_mapper = ClaudeToolMapper()
         self.message_transformer = MessageTransformer()
 
-        # Log OS detection for debugging
+        # Log version and OS detection for debugging
+        print(f"[GroqCloud] ✓ Claude Code Proxy v{PROXY_VERSION}")
         self.tool_mapper.log_os_detection("GroqCloud")
 
     def authenticate(self) -> bool:
