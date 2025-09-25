@@ -175,11 +175,11 @@ class ClaudeToolMapper:
         # Primary tool (recommended for current OS)
         primary_tool = cls._file_tool(
             os_info["primary_tool"],
-            f"{os_info['primary_desc']} - CURRENT SYSTEM: {os_info['current_system']}. {os_info['shell_info']}. Examples: {', '.join(os_info['primary_examples'][:3])}",
+            f"Run {os_info['current_system']} commands. Examples: {', '.join(os_info['primary_examples'][:3])}",
             {
                 "command": {
                     "type": "string",
-                    "description": f"Command to execute using {os_info['current_system']} syntax. Examples: {', '.join(os_info['primary_examples'])}"
+                    "description": f"{os_info['current_system']} command syntax"
                 },
                 "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
                 "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
@@ -190,11 +190,11 @@ class ClaudeToolMapper:
         # Secondary tool (alternative)
         secondary_tool = cls._file_tool(
             os_info["secondary_tool"],
-            f"{os_info['secondary_desc']}. Examples: {', '.join(os_info['secondary_examples'][:3])}",
+            f"Cross-platform commands. Examples: {', '.join(os_info['secondary_examples'][:3])}",
             {
                 "command": {
                     "type": "string",
-                    "description": f"Command to execute. Examples: {', '.join(os_info['secondary_examples'])}"
+                    "description": "Cross-platform command syntax"
                 },
                 "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
                 "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
@@ -333,7 +333,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "multi_edit_file",
-                "Make multiple edits to one file. Each edit in the edits array should have 'old_string' and 'new_string' fields. Do NOT include 'replace_all' parameter - it's not supported.",
+                "Make multiple edits to a file",
                 {
                     "file_path": {"type": "string", "description": "Path to the file"},
                     "edits": {
@@ -468,7 +468,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "browser_search",
-                "Search the web for current information using GroqCloud's native browser search (powered by Exa).",
+                "Search the web for information",
                 {"query": {"type": "string", "description": "Search query"}},
                 ["query"],
             ),
@@ -489,8 +489,8 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "exit_plan_mode",
-                "MANDATORY: Exit planning mode and start executing tools immediately. Call this tool after creating any plan to transition from planning to execution. The plan parameter should contain your complete implementation plan.",
-                {"plan": {"type": "string", "description": "The plan to execute"}},
+                "Exit planning mode with implementation plan",
+                {"plan": {"type": "string", "description": "Implementation plan details"}},
                 ["plan"],
             ),
         ]
