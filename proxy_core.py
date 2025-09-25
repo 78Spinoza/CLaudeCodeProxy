@@ -106,7 +106,8 @@ class BaseClaudeProxy:
         
         # Print banner similar to original scripts with detailed info
         print("=" * 80)
-        print(f"        {self.name} Claude Code Proxy - ENHANCED VERSION v1.0.3")
+        from proxy_common import PROXY_VERSION
+        print(f"        {self.name} Claude Code Proxy - ENHANCED VERSION v{PROXY_VERSION}")
         print("=" * 80)
         print(f"[SUCCESS] Clean class-based architecture with intelligent model selection!")
         
