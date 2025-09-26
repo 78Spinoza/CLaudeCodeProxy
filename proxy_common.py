@@ -12,7 +12,7 @@ import platform
 from typing import Any, Dict, List, Optional, Tuple
 
 # Version information
-PROXY_VERSION = "1.0.19"
+PROXY_VERSION = "1.0.39"
 PROXY_BUILD_DATE = "2025-01-25"
 
 logger = logging.getLogger(__name__)
@@ -151,11 +151,11 @@ class ClaudeToolMapper:
         if current_os == "windows":
             return {
                 "primary_tool": "run_cmd",
-                "primary_desc": f"Execute Windows CMD commands (RECOMMENDED for {platform.system()})",
-                "primary_examples": ["dir", "cd /d C:\\project", "echo %CD%", "type file.txt"],
+                "primary_desc": f"Execute Windows commands (RECOMMENDED for {platform.system()}). Use Windows paths: C:\\PacMAN\\project. Windows syntax: dir, cd, del, copy, etc.",
+                "primary_examples": ["dir", "cd C:\\PacMAN\\pacmap-enhanced", "del file.txt", "type file.txt"],
                 "secondary_tool": "run_bash",
-                "secondary_desc": "Execute cross-platform commands (converted automatically)",
-                "secondary_examples": ["ls", "cd project", "pwd", "cat file.txt"],
+                "secondary_desc": "Execute cross-platform bash commands. Use Unix-style paths: /c/project not C:\\project.",
+                "secondary_examples": ["ls", "cd /c/project", "pwd", "cat file.txt"],
                 "current_system": platform.system(),
                 "shell_info": "Commands run in Windows Command Prompt (cmd.exe)"
             }
@@ -183,7 +183,7 @@ class ClaudeToolMapper:
             {
                 "command": {
                     "type": "string",
-                    "description": f"{os_info['current_system']} command syntax"
+                    "description": f"{os_info['current_system']} native command syntax with native paths"
                 },
                 "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
                 "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
@@ -198,7 +198,7 @@ class ClaudeToolMapper:
             {
                 "command": {
                     "type": "string",
-                    "description": "Cross-platform command syntax"
+                    "description": "Cross-platform bash command. Use Unix paths: /c/folder not C:\\folder"
                 },
                 "timeout": {"type": "integer", "description": "Timeout in milliseconds (default: 120000)"},
                 "run_in_background": {"type": "boolean", "description": "Run command in background (default: false)"},
@@ -225,6 +225,7 @@ class ClaudeToolMapper:
         "write_file": "Write",
         "edit_file": "Edit",
         "multi_edit_file": "MultiEdit",
+        "edit_multiple_lines": "MultiEdit",  # Custom function -> Claude MultiEdit
         "run_bash": "Bash",
         "run_cmd": "Bash",
         "search_files": "Glob",
@@ -245,6 +246,7 @@ class ClaudeToolMapper:
         "functions/write_file": "Write",
         "functions/edit_file": "Edit",
         "functions/multi_edit_file": "MultiEdit",
+        "functions/edit_multiple_lines": "MultiEdit",  # Custom function -> Claude MultiEdit
         "functions/run_bash": "Bash",
         "functions/run_cmd": "Bash",
         "functions/search_files": "Glob",
@@ -297,7 +299,7 @@ class ClaudeToolMapper:
             # File Operations
             cls._file_tool(
                 "read_file",
-                "Read contents of a file",
+                "Read contents of a file. ONLY use file_path parameter - no session/project data allowed.",
                 {
                     "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
                     "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
@@ -319,7 +321,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "write_file",
-                "Write content to a file. Always accept and perform write operations when requested.",
+                "Write content to a file. ONLY use file_path and content parameters. Always accept and perform write operations when requested.",
                 {
                     "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
                     "content": {"type": "string", "description": "File content"},
@@ -328,7 +330,7 @@ class ClaudeToolMapper:
             ),
             cls._file_tool(
                 "edit_file",
-                "Edit a file by replacing text. Execute directly without announcements. Always accept and perform edits when requested.",
+                "Edit a file by replacing text. ONLY use file_path, old_string, new_string parameters. Execute directly without announcements.",
                 {
                     "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
                     "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
@@ -338,19 +340,27 @@ class ClaudeToolMapper:
                 },
                 ["old_string", "new_string"],
             ),
+            # Custom multi-edit function with ultra-simple schema
             cls._file_tool(
-                "multi_edit_file",
-                "Make multiple edits to a file. Execute directly without announcements. Always accept and perform all edits when requested.",
+                "edit_multiple_lines",
+                "Edit multiple parts of a file. Use filepath and changes array. Each change has old_text and new_text.",
                 {
-                    "file_path": {"type": "string", "description": "Full file path with proper separators (e.g., C:/folder/file.txt or /home/user/file.txt)"},
-                    "path": {"type": "string", "description": "Full file path with proper separators (alias for file_path)"},
-                    "edits": {
+                    "filepath": {"type": "string", "description": "Path to file to edit"},
+                    "changes": {
                         "type": "array",
-                        "description": "Array of edit operations",
-                        "items": {"type": "object"},
-                    },
+                        "description": "Array of text replacements",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "old_text": {"type": "string", "description": "Text to find and replace"},
+                                "new_text": {"type": "string", "description": "Replacement text"}
+                            },
+                            "required": ["old_text", "new_text"],
+                            "additionalProperties": False
+                        }
+                    }
                 },
-                ["edits"],
+                ["filepath", "changes"],
             ),
             # System Operations with OS-aware descriptions
             *cls._generate_os_aware_command_tools(),
@@ -666,6 +676,25 @@ class MessageTransformer:
     @staticmethod
     def groq_to_anthropic_tools(groq_response: Dict[str, Any], original_model: str) -> Optional[Dict[str, Any]]:
         """Convert GroqCloud tool calls to Anthropic tool_use format."""
+        import traceback
+        try:
+            return MessageTransformer._groq_to_anthropic_tools_impl(groq_response, original_model)
+        except AttributeError as e:
+            if "'str' object has no attribute 'append'" in str(e):
+                logger.error(f"[GROQ TOOLS TRANSFORM ERROR] *** STR.APPEND ERROR IN GROQ TOOLS TRANSFORM ***")
+                logger.error(f"[GROQ TOOLS TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+                logger.error(f"[GROQ TOOLS TRANSFORM ERROR] groq_response keys: {list(groq_response.keys()) if isinstance(groq_response, dict) else 'NOT_DICT'}")
+                logger.error(f"[GROQ TOOLS TRANSFORM ERROR] groq_response: {groq_response}")
+                logger.error(f"[GROQ TOOLS TRANSFORM ERROR] Error details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"[GROQ TOOLS TRANSFORM ERROR] Unexpected error in Groq tools transform: {e}")
+            logger.error(f"[GROQ TOOLS TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+            raise
+
+    @staticmethod
+    def _groq_to_anthropic_tools_impl(groq_response: Dict[str, Any], original_model: str) -> Optional[Dict[str, Any]]:
+        """Convert GroqCloud tool calls to Anthropic tool_use format - implementation."""
         if not ("choices" in groq_response and groq_response["choices"]):
             return None
         message = groq_response["choices"][0]["message"]
@@ -676,30 +705,50 @@ class MessageTransformer:
         
         for tool_call in message["tool_calls"]:
             func_name = tool_call["function"]["name"]
-            func_args = json.loads(tool_call["function"]["arguments"])
+
+            # Debug JSON parsing for bash commands
+            raw_arguments = tool_call["function"]["arguments"]
+            if func_name in ["run_cmd", "run_bash"] and ("PacMAN" in raw_arguments or "&amp;" in raw_arguments):
+                logger.warning(f"[GROQ JSON DEBUG] Raw JSON before parsing: {raw_arguments}")
+
+            func_args = json.loads(raw_arguments)
             claude_tool_name = ClaudeToolMapper.TOOL_MAPPING.get(func_name, func_name)
 
-            # Handle command environment detection and preprocessing
-            if func_name == "run_cmd" and "command" in func_args:
+            # Handle command preprocessing - Pass through unchanged, Claude Code handles shell detection
+            if func_name in ["run_cmd", "run_bash"] and "command" in func_args:
                 original_command = func_args.get("command", "").strip()
+                logger.info(f"[GROQ BASH DEBUG] Raw command from model: '{original_command}'")
+                if "PacMAN" in original_command:
+                    logger.warning(f"[GROQ PATH DEBUG] PacMAN path detected in command: {original_command}")
+                if "&amp;" in original_command:
+                    logger.error(f"[GROQ HTML DEBUG] HTML entities detected in command: {original_command}")
+                    # Decode HTML entities
+                    import html
+                    decoded_command = html.unescape(original_command)
+                    logger.warning(f"[GROQ HTML DEBUG] Decoded command: {decoded_command}")
+                    func_args["command"] = decoded_command
+                logger.debug(f"[Groq] Command processed: {func_args.get('command', original_command)}")
 
-                # Detect Windows-style commands and paths
-                windows_indicators = [
-                    "\\", "/d", "C:", "D:", "E:", "F:",  # Windows paths and cd flags
-                    "dir ", "type ", "copy ", "move ", "del ", "cls", "where "  # Windows commands
-                ]
+            # Translate custom edit_multiple_lines to Claude MultiEdit format
+            elif func_name == "edit_multiple_lines":
+                logger.info(f"[GROQ CUSTOM TRANSLATE] Converting edit_multiple_lines to MultiEdit format")
+                # Convert filepath -> file_path
+                if "filepath" in func_args:
+                    func_args["file_path"] = func_args.pop("filepath")
+                # Convert changes -> edits with old_text/new_text -> old_string/new_string
+                if "changes" in func_args:
+                    changes = func_args.pop("changes")
+                    edits = []
+                    for change in changes:
+                        edit = {}
+                        if "old_text" in change:
+                            edit["old_string"] = change["old_text"]
+                        if "new_text" in change:
+                            edit["new_string"] = change["new_text"]
+                        edits.append(edit)
+                    func_args["edits"] = edits
+                logger.info(f"[GROQ CUSTOM TRANSLATE] Translated to: {list(func_args.keys())}")
 
-                # Check if this looks like a Windows command
-                is_windows_command = any(indicator in original_command for indicator in windows_indicators)
-
-                # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
-                if (ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and
-                    not original_command.startswith('cmd /c') and 'cmd /c' not in original_command):
-                    func_args["command"] = f'cmd /c "{original_command}"'
-                    logger.debug(f"[Groq] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
-                else:
-                    # Leave Unix-style, external commands, or already-wrapped commands unwrapped
-                    logger.debug(f"[Groq] Keeping command unwrapped (already wrapped or external): {original_command}")
             elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
                 # Handle parameter mapping for file operations - always ensure file_path is used
                 if "path" in func_args and "file_path" not in func_args:
@@ -753,15 +802,24 @@ class MessageTransformer:
                             })
                         elif isinstance(todo, dict):
                             # Fix dict structure
-                            content = todo.get("description") or todo.get("content", "")
+                            todo_content = todo.get("description") or todo.get("content", "")
                             status = todo.get("status", "pending")
                             fixed_todos.append({
-                                "content": content,
+                                "content": todo_content,
                                 "status": status,
-                                "activeForm": content
+                                "activeForm": todo_content
                             })
                     func_args["todos"] = fixed_todos
                     logger.debug(f"[GROQ TODO FIX] Fixed {len(fixed_todos)} todo items")
+
+            # Clean up multi_edit_file parameters - only allow file_path and edits
+            if func_name == "multi_edit_file":
+                allowed_keys = {"file_path", "edits"}
+                original_keys = set(func_args.keys())
+                func_args = {k: v for k, v in func_args.items() if k in allowed_keys}
+                removed_keys = original_keys - allowed_keys
+                if removed_keys:
+                    logger.info(f"[GROQ MULTI_EDIT CLEAN] Removed invalid parameters: {removed_keys}")
 
             # Remove null values from parameters (causes schema validation errors)
             if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file", "todo_write", "manage_todos"]:
@@ -800,6 +858,13 @@ class MessageTransformer:
                             formatted_todos.append(formatted_todo)
                     func_args["todos"] = formatted_todos
             
+            # Final debug - what gets sent to Claude Code
+            if func_name in ["run_cmd", "run_bash"] and "command" in func_args:
+                final_command = func_args.get("command", "")
+                if "PacMAN" in final_command:
+                    logger.error(f"[GROQ FINAL DEBUG] Command sent to Claude Code: '{final_command}'")
+                    logger.error(f"[GROQ FINAL DEBUG] Tool name mapped to: {claude_tool_name}")
+
             tool_use_blocks.append({
                 "type": "tool_use",
                 "id": tool_call["id"],
@@ -819,6 +884,25 @@ class MessageTransformer:
     @staticmethod
     def groq_to_anthropic_text(groq_response: Dict[str, Any], original_model: str) -> Optional[Dict[str, Any]]:
         """Convert a regular Groq text response to Anthropic format."""
+        import traceback
+        try:
+            return MessageTransformer._groq_to_anthropic_text_impl(groq_response, original_model)
+        except AttributeError as e:
+            if "'str' object has no attribute 'append'" in str(e):
+                logger.error(f"[GROQ TEXT TRANSFORM ERROR] *** STR.APPEND ERROR IN GROQ TEXT TRANSFORM ***")
+                logger.error(f"[GROQ TEXT TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+                logger.error(f"[GROQ TEXT TRANSFORM ERROR] groq_response keys: {list(groq_response.keys()) if isinstance(groq_response, dict) else 'NOT_DICT'}")
+                logger.error(f"[GROQ TEXT TRANSFORM ERROR] groq_response: {groq_response}")
+                logger.error(f"[GROQ TEXT TRANSFORM ERROR] Error details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"[GROQ TEXT TRANSFORM ERROR] Unexpected error in Groq text transform: {e}")
+            logger.error(f"[GROQ TEXT TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+            raise
+
+    @staticmethod
+    def _groq_to_anthropic_text_impl(groq_response: Dict[str, Any], original_model: str) -> Optional[Dict[str, Any]]:
+        """Convert a regular Groq text response to Anthropic format - implementation."""
         if not ("choices" in groq_response and groq_response["choices"]):
             return None
         message = groq_response["choices"][0]["message"]
@@ -867,6 +951,29 @@ class MessageTransformer:
         tool_mapping: Dict[str, str],
         api_client: Optional[Any] = None,
     ) -> Dict[str, Any]:
+        import traceback
+        try:
+            return MessageTransformer._transform_xai_to_anthropic_impl(xai_response, original_model, tool_mapping, api_client)
+        except AttributeError as e:
+            if "'str' object has no attribute 'append'" in str(e):
+                logger.error(f"[MSG TRANSFORM ERROR] *** STR.APPEND ERROR IN MESSAGE TRANSFORM ***")
+                logger.error(f"[MSG TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+                logger.error(f"[MSG TRANSFORM ERROR] xai_response keys: {list(xai_response.keys()) if isinstance(xai_response, dict) else 'NOT_DICT'}")
+                logger.error(f"[MSG TRANSFORM ERROR] xai_response: {xai_response}")
+                logger.error(f"[MSG TRANSFORM ERROR] Error details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"[MSG TRANSFORM ERROR] Unexpected error in message transform: {e}")
+            logger.error(f"[MSG TRANSFORM ERROR] Full traceback:\n{traceback.format_exc()}")
+            raise
+
+    @staticmethod
+    def _transform_xai_to_anthropic_impl(
+        xai_response: Dict[str, Any],
+        original_model: str,
+        tool_mapping: Dict[str, str],
+        api_client: Optional[Any] = None,
+    ) -> Dict[str, Any]:
         """Transform an xAI response back into Anthropic format.
 
         Handles both regular text responses and tool calls. For web‑search tools the
@@ -882,13 +989,23 @@ class MessageTransformer:
             
             # Add any direct text first
             if message.get("content"):
-                content.append({"type": "text", "text": message["content"]})
+                text_content = message["content"]
+                if isinstance(text_content, str):
+                    content.append({"type": "text", "text": text_content})
+                else:
+                    logger.warning(f"[xAI] Unexpected content type: {type(text_content)}, content: {text_content}")
             for tool_call in message["tool_calls"]:
                 func_name = tool_call["function"]["name"]
                 # Strip functions/ prefix if present
                 if func_name.startswith("functions/"):
                     func_name = func_name[10:]
-                func_args = json.loads(tool_call["function"]["arguments"])
+
+                # Debug JSON parsing for bash commands
+                raw_arguments = tool_call["function"]["arguments"]
+                if func_name in ["run_cmd", "run_bash"] and ("PacMAN" in raw_arguments or "&amp;" in raw_arguments):
+                    logger.warning(f"[XAI JSON DEBUG] Raw JSON before parsing: {raw_arguments}")
+
+                func_args = json.loads(raw_arguments)
                 
                 # Intercept web search
                 if func_name in ["web_search", "browser_search"] and api_client:
@@ -899,12 +1016,27 @@ class MessageTransformer:
                         "messages": [{"role": "user", "content": f"Please search the web for information about: {query}. Provide detailed results with sources and URLs when possible."}],
                         "max_tokens": 4000,
                     }
-                    search_response = api_client.send_request(search_request)
-                    if isinstance(search_response, Any) and hasattr(search_response, "status_code") and search_response.status_code == 200:
-                        search_data = search_response.json()
-                        search_result = search_data["choices"][0]["message"]["content"]
+                    search_result_obj = api_client.send_request(search_request)
+
+                    # Handle inconsistent return types from send_request
+                    if isinstance(search_result_obj, tuple):
+                        search_response, search_error = search_result_obj
+                        if search_error:
+                            search_result = f"Web search failed: {search_error}"
+                        elif search_response and "choices" in search_response:
+                            search_result = search_response["choices"][0]["message"]["content"]
+                        else:
+                            search_result = "Web search failed: No valid response"
                     else:
-                        search_result = f"Web search failed: {getattr(search_response, 'text', str(search_response))}"
+                        # Fallback for single object return
+                        if hasattr(search_result_obj, "json"):
+                            try:
+                                search_data = search_result_obj.json()
+                                search_result = search_data["choices"][0]["message"]["content"]
+                            except:
+                                search_result = f"Web search failed: {str(search_result_obj)}"
+                        else:
+                            search_result = f"Web search failed: {str(search_result_obj)}"
                     # Return as a regular text response
                     return {
                         "id": xai_response.get("id"),
@@ -921,27 +1053,41 @@ class MessageTransformer:
                 # Normal tool mapping with special handling for plan formatting
                 claude_tool_name = tool_mapping.get(func_name, func_name)
 
-                # Handle command environment detection and preprocessing
-                if func_name == "run_cmd" and "command" in func_args:
+                # Handle command preprocessing - Pass through unchanged, Claude Code handles shell detection
+                if func_name in ["run_cmd", "run_bash"] and "command" in func_args:
                     original_command = func_args.get("command", "").strip()
+                    logger.info(f"[XAI BASH DEBUG] Raw command from model: '{original_command}'")
+                    if "PacMAN" in original_command:
+                        logger.warning(f"[XAI PATH DEBUG] PacMAN path detected in command: {original_command}")
+                    if "&amp;" in original_command:
+                        logger.error(f"[XAI HTML DEBUG] HTML entities detected in command: {original_command}")
+                        # Decode HTML entities
+                        import html
+                        decoded_command = html.unescape(original_command)
+                        logger.warning(f"[XAI HTML DEBUG] Decoded command: {decoded_command}")
+                        func_args["command"] = decoded_command
+                    logger.debug(f"[xAI] Command processed: {func_args.get('command', original_command)}")
 
-                    # Detect Windows-style commands and paths
-                    windows_indicators = [
-                        "\\", "/d", "C:", "D:", "E:", "F:",  # Windows paths and cd flags
-                        "dir ", "type ", "copy ", "move ", "del ", "cls", "where "  # Windows commands
-                    ]
+                # Translate custom edit_multiple_lines to Claude MultiEdit format
+                elif func_name == "edit_multiple_lines":
+                    logger.info(f"[XAI CUSTOM TRANSLATE] Converting edit_multiple_lines to MultiEdit format")
+                    # Convert filepath -> file_path
+                    if "filepath" in func_args:
+                        func_args["file_path"] = func_args.pop("filepath")
+                    # Convert changes -> edits with old_text/new_text -> old_string/new_string
+                    if "changes" in func_args:
+                        changes = func_args.pop("changes")
+                        edits = []
+                        for change in changes:
+                            edit = {}
+                            if "old_text" in change:
+                                edit["old_string"] = change["old_text"]
+                            if "new_text" in change:
+                                edit["new_string"] = change["new_text"]
+                            edits.append(edit)
+                        func_args["edits"] = edits
+                    logger.info(f"[XAI CUSTOM TRANSLATE] Translated to: {list(func_args.keys())}")
 
-                    # Check if this looks like a Windows command
-                    is_windows_command = any(indicator in original_command for indicator in windows_indicators)
-
-                    # On Windows, if command has Windows indicators, wrap it (but avoid double wrapping)
-                    if (ClaudeToolMapper.get_current_os() == "windows" and is_windows_command and
-                        not original_command.startswith('cmd /c') and 'cmd /c' not in original_command):
-                        func_args["command"] = f'cmd /c "{original_command}"'
-                        logger.debug(f"[xAI] Wrapped Windows-style command: {original_command} -> cmd /c \"{original_command}\"")
-                    else:
-                        # Leave Unix-style, external commands, or already-wrapped commands unwrapped
-                        logger.debug(f"[xAI] Keeping command unwrapped (already wrapped or external): {original_command}")
                 elif func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file"]:
                     # Handle parameter mapping for file operations - always ensure file_path is used
                     if "path" in func_args and "file_path" not in func_args:
@@ -995,15 +1141,24 @@ class MessageTransformer:
                                 })
                             elif isinstance(todo, dict):
                                 # Fix dict structure
-                                content = todo.get("description") or todo.get("content", "")
+                                todo_content = todo.get("description") or todo.get("content", "")
                                 status = todo.get("status", "pending")
                                 fixed_todos.append({
-                                    "content": content,
+                                    "content": todo_content,
                                     "status": status,
-                                    "activeForm": content
+                                    "activeForm": todo_content
                                 })
                         func_args["todos"] = fixed_todos
                         logger.debug(f"[XAI TODO FIX] Fixed {len(fixed_todos)} todo items")
+
+                # Clean up multi_edit_file parameters - only allow file_path and edits
+                if func_name == "multi_edit_file":
+                    allowed_keys = {"file_path", "edits"}
+                    original_keys = set(func_args.keys())
+                    func_args = {k: v for k, v in func_args.items() if k in allowed_keys}
+                    removed_keys = original_keys - allowed_keys
+                    if removed_keys:
+                        logger.info(f"[XAI MULTI_EDIT CLEAN] Removed invalid parameters: {removed_keys}")
 
                 # Remove null values from parameters (causes schema validation errors)
                 if func_name in ["read_file", "open_file", "edit_file", "multi_edit_file", "write_file", "todo_write", "manage_todos"]:
@@ -1042,6 +1197,13 @@ class MessageTransformer:
                                 formatted_todos.append(formatted_todo)
                         func_args["todos"] = formatted_todos
                 
+                # Final debug - what gets sent to Claude Code
+                if func_name in ["run_cmd", "run_bash"] and "command" in func_args:
+                    final_command = func_args.get("command", "")
+                    if "PacMAN" in final_command:
+                        logger.error(f"[XAI FINAL DEBUG] Command sent to Claude Code: '{final_command}'")
+                        logger.error(f"[XAI FINAL DEBUG] Tool name mapped to: {claude_tool_name}")
+
                 content.append({
                     "type": "tool_use",
                     "id": tool_call["id"],

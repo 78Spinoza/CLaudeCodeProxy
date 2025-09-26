@@ -112,6 +112,23 @@ class XAIAdapter:
         return self.api_client.test_connection()
 
     def handle_proxy_request(self, data: dict):
+        import traceback
+        try:
+            return self._handle_proxy_request_impl(data)
+        except AttributeError as e:
+            if "'str' object has no attribute 'append'" in str(e):
+                logger.error(f"[XAI ERROR TRACE] *** STR.APPEND ERROR IN XAI ADAPTER ***")
+                logger.error(f"[XAI ERROR TRACE] Full traceback:\n{traceback.format_exc()}")
+                logger.error(f"[XAI ERROR TRACE] Request data keys: {list(data.keys())}")
+                logger.error(f"[XAI ERROR TRACE] Request data: {data}")
+                logger.error(f"[XAI ERROR TRACE] Error details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"[XAI ERROR TRACE] Unexpected error in xAI adapter: {e}")
+            logger.error(f"[XAI ERROR TRACE] Full traceback:\n{traceback.format_exc()}")
+            raise
+
+    def _handle_proxy_request_impl(self, data: dict):
         """Process an incoming request payload and return a Flask response.
 
         This mirrors the logic previously found in ``XAIClaudeProxy.handle_request``.
@@ -145,11 +162,18 @@ class XAIAdapter:
 
         try:
             logger.info(f"Sending request to xAI using model: {selected_model}")
-            response, error = self.api_client.send_request(xai_payload, xai_payload.get("stream", False))
-            
-            # Streaming responses are already a Flask ``Response`` object
-            if isinstance(response, Response):
-                return response
+            result = self.api_client.send_request(xai_payload, xai_payload.get("stream", False))
+
+            # Handle inconsistent return types from send_request
+            if isinstance(result, Response):
+                # Streaming response - single Response object
+                return result
+            elif isinstance(result, tuple):
+                # Non-streaming response - (response, error) tuple
+                response, error = result
+            else:
+                # Fallback - treat as response
+                response, error = result, None
 
             if error:
                 logger.error(f"xAI API Error: {error}")

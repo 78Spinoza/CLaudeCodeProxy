@@ -1,4 +1,4 @@
-# Claude Proxy Architecture Overview v1.0.15
+# Claude Proxy Architecture Overview v1.0.20
 
 ## Purpose
 
@@ -123,6 +123,86 @@ When a tool call named `web_search` or `browser_search` is detected, the proxy:
 These commands are processed in a background thread (`_console_input_handler`).
 
 ---
+
+## v1.0.26 Architecture Improvements
+
+**Bash Command Standardization:**
+- **Standard Unix/bash Syntax**: Updated tool descriptions to use standard bash commands (rm, ls, cd, cat)
+- **Eliminated PowerShell/cmd Confusion**: Removed Windows-specific command instructions that caused execution errors
+- **Claude Code Compatibility**: Aligned with Claude Code's native bash execution environment
+- **Command Pass-through**: Simplified to pure command forwarding without shell detection or wrapping
+
+## v1.0.25 Architecture Improvements
+
+**Command Processing Simplification:**
+- **Native Claude Code Handling**: Removed all proxy command wrapping and translation
+- **Direct Pass-through**: Commands sent unchanged to Claude Code for native processing
+- **OS Detection Delegation**: Let Claude Code handle shell detection and execution
+
+## v1.0.24 Architecture Improvements
+
+**PowerShell Integration Attempt:**
+- **PowerShell Wrapping**: Attempted Windows PowerShell command wrapping
+- **Tool Description Updates**: Updated examples to show PowerShell syntax
+- **Translation Removal**: Eliminated command translation in favor of native generation
+
+## v1.0.23 Architecture Improvements
+
+**Windows Command Reliability:**
+- **PowerShell Adoption**: Switched to PowerShell for Windows command execution
+- **Smart Detection**: Added PowerShell vs cmd detection to prevent double-wrapping
+- **Cross-platform Handling**: Maintained Unix/Linux command pass-through
+
+## v1.0.22 Architecture Improvements
+
+**Command Wrapping Removal:**
+- **No Command Modification**: Removed all Windows command wrapping logic
+- **Direct Execution**: Commands passed through unchanged to Claude Code
+- **Simplified Processing**: Eliminated complex Windows command detection
+
+## v1.0.21 Architecture Improvements
+
+**Windows Command Chain Fixes:**
+- **Pushd/Popd Implementation**: Converted cd /d && command chains to pushd/popd for reliability
+- **Directory Change Handling**: Improved Windows directory navigation in command chains
+- **Command Chain Reliability**: Fixed issues with && command execution on Windows
+
+## v1.0.20 Architecture Improvements
+
+**Command Execution Fixes:**
+- **Double CMD Wrapping Fix**: Prevented duplicate cmd /c wrapping causing command hangs
+- **Parameter Schema Validation**: Fixed null parameter filtering for read_file operations
+- **Edit File Parameter Mapping**: Corrected path→file_path parameter translation for edit operations
+- **Unicode Encoding Fix**: Removed Unicode characters causing Windows startup failures
+- **Windows Command Detection**: Improved logic for detecting Windows native commands
+
+## v1.0.19 Architecture Improvements
+
+**Path Correction & Command Wrapping:**
+- **Intelligent Path Correction**: Automatic path correction for Windows/Unix compatibility
+- **Command Double-Wrapping Prevention**: Fixed infinite cmd /c wrapping loops
+- **Schema Validation Enhancement**: Improved tool parameter validation and error handling
+
+## v1.0.18 Architecture Improvements
+
+**Baseten Adapter & Cost Optimization:**
+- **Baseten Integration**: Added Baseten adapter for 20% additional cost savings
+- **Model Routing Optimization**: Enhanced model selection for cost-effective processing
+- **Dual-Parameter Schema Validation**: Fixed schema validation for complex parameter structures
+
+## v1.0.17 Architecture Improvements
+
+**Plan Mode Removal & Tool Improvements:**
+- **Plan Mode Elimination**: Removed redundant plan mode causing double announcements
+- **ExitPlanMode Formatting**: Improved formatting for plan presentation to users
+- **Schema Validation Fixes**: Resolved dual-parameter validation errors
+
+## v1.0.16 Architecture Improvements
+
+**Version Synchronization:**
+- **Unified Version Display**: Synchronized all proxy component versions to v1.0.15
+- **Documentation Updates**: Updated installer and documentation version references
+- **Release Process**: Streamlined version management across all components
 
 ## v1.0.15 Architecture Improvements
 

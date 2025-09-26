@@ -97,6 +97,23 @@ class GroqAdapter:
         return self.api_client.test_connection()
 
     def handle_proxy_request(self, data: dict):
+        import traceback
+        try:
+            return self._handle_proxy_request_impl(data)
+        except AttributeError as e:
+            if "'str' object has no attribute 'append'" in str(e):
+                logger.error(f"[GROQ ERROR TRACE] *** STR.APPEND ERROR IN GROQ ADAPTER ***")
+                logger.error(f"[GROQ ERROR TRACE] Full traceback:\n{traceback.format_exc()}")
+                logger.error(f"[GROQ ERROR TRACE] Request data keys: {list(data.keys())}")
+                logger.error(f"[GROQ ERROR TRACE] Request data: {data}")
+                logger.error(f"[GROQ ERROR TRACE] Error details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"[GROQ ERROR TRACE] Unexpected error in Groq adapter: {e}")
+            logger.error(f"[GROQ ERROR TRACE] Full traceback:\n{traceback.format_exc()}")
+            raise
+
+    def _handle_proxy_request_impl(self, data: dict):
         """Process an incoming request payload and return a Flask response."""
 
         # Detect web search requirement
@@ -131,8 +148,19 @@ class GroqAdapter:
             openai_request["tools"] = tools_schema
             openai_request["tool_choice"] = "auto"
 
-        # Send request to GroqCloud
-        groq_response, error = self.api_client.send_request(openai_request)
+        # Send request to GroqCloud with streaming support
+        result = self.api_client.send_request(openai_request, data.get("stream", False))
+
+        # Handle inconsistent return types from send_request (same as xAI fix)
+        if isinstance(result, Response):
+            # Streaming response - single Response object
+            return result
+        elif isinstance(result, tuple):
+            # Non-streaming response - (response, error) tuple
+            groq_response, error = result
+        else:
+            # Fallback - treat as response
+            groq_response, error = result, None
         if error:
             return jsonify({"error": "Service temporarily unavailable. The AI service is experiencing high demand. Please try again in a moment."}), 503
 
@@ -158,7 +186,13 @@ class GroqAdapter:
                         "messages": [{"role": "user", "content": f"Search the web for: {search_query}"}]
                     }
 
-                    compound_response, compound_error = self.api_client.send_request(compound_request)
+                    compound_result = self.api_client.send_request(compound_request)
+
+                    # Handle inconsistent return types from send_request
+                    if isinstance(compound_result, tuple):
+                        compound_response, compound_error = compound_result
+                    else:
+                        compound_response, compound_error = compound_result, None
 
                     if compound_response and 'choices' in compound_response:
                         search_results = compound_response['choices'][0]['message']['content']
